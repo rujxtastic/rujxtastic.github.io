@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rujx</title>
+
+  <style>
+    /* ============================
+       1. GLOBAL / RESET
+       Mostly white, same font as before.
+       ============================ */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, "Segoe UI", Arial, sans-serif;
+      line-height: 1.6;
+      color: #222;
+      background: #fff;
+    }
+
+    .wrapper {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* ============================
+       2. HEADER
+       ============================ */
+    header {
+      padding: 20px 0;
+      text-align: center;
+      border-bottom: 1px solid #eee;
+    }
+
+    /* ============================
+       3. TAB NAVIGATION
+       ============================ */
+    .tabs {
+      display: flex;
+      justify-content: center;
+      border-bottom: 1px solid #eee;
+    }
+
+    .tab-button {
+      flex: 1;
+      max-width: 150px;
+      padding: 14px 10px;
+      border: none;
+      background: none;
+      color: #888;
+      font-size: 1rem;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .tab-button:hover {
+      color: #222;
+    }
+
+    /* Highlight the currently selected tab */
+    .tab-button.active {
+      color: #222;
+      font-weight: bold;
+      border-bottom: 2px solid #222;
+    }
+
+    /* ============================
+       4. TAB CONTENT
+       ============================ */
+    .tab-content {
+      display: none;         /* hidden by default */
+      padding: 30px 0;
+    }
+
+    .tab-content.active {
+      display: block;        /* shown when active */
+    }
+
+    .tab-content p {
+      margin-bottom: 10px;
+    }
+
+    /* ============================
+       5. FOOTER
+       ============================ */
+    footer {
+      text-align: center;
+      padding: 20px;
+      color: #aaa;
+      font-size: 0.85rem;
+    }
+
+    /* ============================
+       6. ROLLING TITLE
+       Wrap any heading text in <rolling-title>
+       and it will roll + bounce in on scroll,
+       and roll away when scrolled off.
+       ============================ */
+    rolling-title {
+      display: inline-block;
+      font-size: 2rem;
+      font-weight: bold;
+    }
+
+    rolling-title .char {
+      display: inline-block;
+      opacity: 0;
+      /* Starts off to the left, spun backwards like a wheel that hasn't
+         rolled into place yet */
+      transform: translateX(-30px) rotate(-360deg);
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  opacity 0.4s ease;
+    }
+
+    /* Applied by JS when the title scrolls into view.
+       Removing this class (title scrolls out of view) reverses the
+       transition, so the letter rolls back the way it came. */
+    rolling-title.visible .char {
+      opacity: 1;
+      transform: translateX(0) rotate(0deg);
+    }
+
+    /* ============================
+       7. LINK BUTTONS
+       Use these for any link you want to
+       show as a button, e.g. social links,
+       project links, an email address, etc.
+       <a class="link-button" href="...">Label</a>
+       ============================ */
+    .link-button {
+      display: inline-block;
+      padding: 10px 18px;
+      margin: 6px 6px 6px 0;
+      border: 1px solid #222;
+      border-radius: 4px;
+      color: #222;
+      text-decoration: none;
+      font-size: 0.95rem;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .link-button:hover {
+      background: #222;
+      color: #fff;
+    }
+
+    /* Optional filled variant: <a class="link-button link-button-filled"> */
+    .link-button-filled {
+      background: #222;
+      color: #fff;
+    }
+
+    .link-button-filled:hover {
+      background: #444;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================
+       HEADER
+       ============================ -->
+  <header>
+    <rolling-title>Rujx</rolling-title>
+  </header>
+
+  <!-- ============================
+       TAB BUTTONS
+       Add a new button here + a matching
+       section below to add more tabs.
+       ============================ -->
+  <nav class="tabs">
+    <button class="tab-button active" onclick="showTab('home')">Home</button>
+    <button class="tab-button" onclick="showTab('projects')">Projects</button>
+    <button class="tab-button" onclick="showTab('other')">More Stuff</button>
+    <button class="tab-button" onclick="showTab('contact')">Contact</button>
+  </nav>
+
+  <div class="wrapper">
+
+    <!-- ============================
+         TAB PANELS
+         Each panel's id must match the
+         string used in showTab() above.
+         ============================ -->
+    <section id="home" class="tab-content active">
+      <rolling-title>Home</rolling-title>
+      <p>Hello! I am Rujx (real name Akhilesh). I like code, cats, maths, linguistics, and occasionally try my hand at art.</p>
+    </section>
+
+    <section id="projects" class="tab-content">
+      <rolling-title>Projects</rolling-title>
+      <p>These are all my code projects that I've polished enough to put on here.</p>
+
+      <!-- Link buttons: change the href and label for each project -->
+      <a class="link-button" href="https://github.com/rujxtastic/rlcontroller" target="_blank">RLController - gesture controller for Rocket League</a>
+      <a class="link-button" href="https://github.com/rujxtastic/wasd" target="_blank">WASD - 4-key keyboard with motor movement</a>
+      <a class="link-button" href="https://github.com/rujxtastic/midifier" target="_blank">MIDIfier - transcribe audio to sheet music</a>
+      <a class="link-button" href="https://github.com/rujxtastic/souptastic" target="_blank">Souptastic - Desk pet with animations</a>
+      <a class="link-button" href="https://github.com/rujxtastic/perfect-storage" target="_blank">Perfect storage - A mathematically optimal storage system for Minecraft</a>
+      <a class="link-button" href="https://rujxtastic.github.io//unogrid" target="_blank">WIP: Unogrid - Algorithm to generate 1-answer boards for Geogrid</a>
+      <a class="link-button" href="https://github.com/rujxtastic/" target="_blank">WIP: Biogrid - Place cells or proteins on a grid inspired by Geogrid</a>
+      <a class="link-button" href="https://github.com/rujxtastic/" target="_blank">WIP: Generate seeds that have the same mapping in Java</a>
+      <a class="link-button" href="https://github.com/rujxtastic/" target="_blank">WIP: Water Sort - popular mobile game with unlimited size</a>
+      <a class="link-button" href="https://github.com/rujxtastic/" target="_blank">WIP: Music remix - play two songs on top of eachother and sync beats</a>
+      <a class="link-button" href="https://github.com/rujxtastic/" target="_blank">WIP: Organise dates</a>
+    </section>
+
+    <section id="other" class="tab-content">
+      <rolling-title>More Stuff</rolling-title>
+      <p>Things that I have done or want to talk about that are not projects.</p>
+      <a class="link-button" href="#" onclick="showTab('ai'); return false;">My Stance On AI</a>
+    </section>
+
+    <!-- Hidden subpage, not linked in the main nav. -->
+    <section id="ai" class="tab-content">
+      <rolling-title>My Stance On AI</rolling-title>
+      <p>In this case, AI = consumer LLMs and GPTs.</p>
+      <p>Create what is fun for you.</p>
+      <p>Drawing is fun. Making music is fun. Writing this part of my website is fun.</p>
+      <p>Spending an hour making a lacklustre UI instead of what I imagined is not fun. Not progressing is not fun.</p>
+      <p>I like to see things that had passion. Vibecoding is okay if you have the direction and can visualise the end goal. Many softwares can result in the same end goal. Art is not like that.</p>
+      <img src="/content/sharpshooter.jpg">
+      <p>I had a blast making this. It took me only 20 minutes and I look tough as nails. Even a silly, unprofessional poster will work wonders compared to anything ChatGPT can pump out.</p>
+    </section>
+
+    <section id="contact" class="tab-content">
+      <rolling-title>Contact</rolling-title>
+      <p>My contact info!</p>
+
+      <!-- Link buttons for contact info / socials.
+           mailto: opens the visitor's email app, no target="_blank" needed -->
+      <a class="link-button link-button-filled" href="mailto:akhilesh.suravarapu1@gmail.com">Email Me</a>
+      <a class="link-button" href="https://github.com/rujxtastic" target="_blank">GitHub</a>
+      <a class="link-button" href="https://www.linkedin.com/in/asuravarapu/" target="_blank">LinkedIn</a>
+    </section>
+
+  </div>
+
+  <footer>
+    <p>&copy; 2026 Rujxtastic</p>
+  </footer>
+
+  <!-- ============================
+       TAB SWITCHING LOGIC
+       ============================ -->
+  <script>
+    function showTab(tabId) {
+      // Hide all tab panels
+      document.querySelectorAll('.tab-content').forEach(function (panel) {
+        panel.classList.remove('active');
+      });
+
+      // Un-highlight all tab buttons
+      document.querySelectorAll('.tab-button').forEach(function (btn) {
+        btn.classList.remove('active');
+      });
+
+      // Show the selected panel
+      document.getElementById(tabId).classList.add('active');
+
+      // Highlight the button that was clicked
+      event.target.classList.add('active');
+    }
+  </script>
+
+  <!-- ============================
+       ROLLING TITLE LOGIC
+       Splits each <rolling-title> into
+       one <span> per character, then
+       watches for scroll in/out.
+       ============================ -->
+  <script>
+    document.querySelectorAll('rolling-title').forEach(function (title) {
+      var text = title.textContent;
+      title.textContent = '';
+
+      // Wrap each character in its own span, staggered slightly
+      Array.from(text).forEach(function (ch, i) {
+        var span = document.createElement('span');
+        span.className = 'char';
+        span.style.transitionDelay = (i * 40) + 'ms';
+        span.textContent = ch === ' ' ? '\u00A0' : ch; // keep spaces visible
+        title.appendChild(span);
+      });
+
+      // Toggle "visible" as the title enters/leaves the viewport
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          entry.target.classList.toggle('visible', entry.isIntersecting);
+        });
+      }, { threshold: 0.4 });
+
+      observer.observe(title);
+    });
+  </script>
+
+</body>
+</html>
