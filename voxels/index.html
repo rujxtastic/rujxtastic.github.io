@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voxel Solids — platonic solids as blocks</title>
+<style>
+  :root{
+    --bg:#ffffff;
+    --text:#1f2933;
+    --muted:#6b7280;
+    --border:#e3e6ea;
+    --panel:#fafbfc;
+    --accent:#2563eb;
+    --accent-hover:#1d4ed8;
+    --accent-soft:#eef3ff;
+    --purple:#7c3aed;
+    --purple-light:#ddd6fe;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;
+  }
+  a{color:var(--accent);}
+  .page{max-width:1180px;margin:0 auto;padding:32px 24px 56px;}
+  header.site{margin-bottom:28px;}
+  header.site h1{
+    font-size:28px;
+    margin:0 0 6px;
+    letter-spacing:-0.01em;
+  }
+  header.site p{
+    margin:0;
+    color:var(--muted);
+    font-size:15px;
+    max-width:60ch;
+  }
+  .layout{
+    display:grid;
+    grid-template-columns:300px 1fr;
+    gap:20px;
+    align-items:start;
+  }
+  @media (max-width:880px){
+    .layout{grid-template-columns:1fr;}
+  }
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:20px;
+  }
+  .panel h2{
+    font-size:13px;
+    text-transform:none;
+    margin:0 0 14px;
+    color:var(--text);
+    font-weight:600;
+  }
+  .field{margin-bottom:16px;}
+  .field:last-child{margin-bottom:0;}
+  .field label{
+    display:block;
+    font-size:13px;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  .field input[type="number"]{
+    width:100%;
+    padding:8px 10px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    font-size:14px;
+    background:#fff;
+    color:var(--text);
+  }
+  .field input[type="number"]:focus{
+    outline:2px solid var(--accent-soft);
+    border-color:var(--accent);
+  }
+  .rot-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .rot-grid .field{margin-bottom:0;}
+  .rot-grid label{text-align:center;}
+  .rot-grid input{text-align:center;}
+
+  .solid-picker{display:flex;flex-wrap:wrap;gap:8px;}
+  .solid-pill{
+    padding:7px 12px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    background:#fff;
+    color:var(--text);
+    font-size:13px;
+    cursor:pointer;
+    transition:background .12s ease, border-color .12s ease, color .12s ease;
+  }
+  .solid-pill:hover{border-color:var(--accent);}
+  .solid-pill.active{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#fff;
+  }
+
+  .layer-row{display:flex;gap:8px;align-items:center;}
+  .layer-row input{flex:1;}
+  .step-btn{
+    width:34px;height:34px;flex:0 0 auto;
+    border:1px solid var(--border);
+    background:#fff;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:14px;
+    color:var(--text);
+  }
+  .step-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .clear-layer{
+    margin-top:10px;
+    width:100%;
+    padding:7px 0;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:#fff;
+    color:var(--muted);
+    font-size:13px;
+    cursor:pointer;
+  }
+  .clear-layer:hover{border-color:#c9ced6;color:var(--text);}
+
+  .legend{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    margin-top:12px;
+    font-size:12.5px;
+    color:var(--muted);
+  }
+  .legend .row{display:flex;align-items:center;gap:8px;}
+  .swatch{width:12px;height:12px;border-radius:3px;flex:0 0 auto;}
+
+  .viewport-wrap{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    overflow:hidden;
+  }
+  #canvas-holder{
+    width:100%;
+    height:560px;
+    display:block;
+  }
+  @media (max-width:880px){
+    #canvas-holder{height:60vh;}
+  }
+  .stats-bar{
+    display:flex;
+    flex-wrap:wrap;
+    gap:20px;
+    padding:14px 18px;
+    border-top:1px solid var(--border);
+    font-size:13px;
+    color:var(--muted);
+  }
+  .stats-bar strong{color:var(--text);font-weight:600;}
+
+  footer.site{
+    margin-top:34px;
+    font-size:12.5px;
+    color:var(--muted);
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="site">
+    <h1>Voxel Solids</h1>
+    <p>Turn a platonic solid into a grid of Minecraft-style blocks. Pick a shape, set its size in blocks and its rotation, then step through build layers one at a time.</p>
+  </header>
+
+  <div class="layout">
+
+    <aside class="panel">
+      <h2>Shape</h2>
+      <div class="field">
+        <div class="solid-picker" id="solidPicker">
+          <button class="solid-pill active" data-solid="tetrahedron">Tetrahedron</button>
+          <button class="solid-pill" data-solid="cube">Cube</button>
+          <button class="solid-pill" data-solid="octahedron">Octahedron</button>
+          <button class="solid-pill" data-solid="dodecahedron">Dodecahedron</button>
+          <button class="solid-pill" data-solid="icosahedron">Icosahedron</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="diameter">Diameter (blocks)</label>
+        <input type="number" id="diameter" min="2" max="60" step="1" value="15">
+      </div>
+
+      <div class="field">
+        <label>Rotation (degrees)</label>
+        <div class="rot-grid">
+          <div class="field">
+            <label for="rotX">X</label>
+            <input type="number" id="rotX" value="0" step="1">
+          </div>
+          <div class="field">
+            <label for="rotY">Y</label>
+            <input type="number" id="rotY" value="0" step="1">
+          </div>
+          <div class="field">
+            <label for="rotZ">Z</label>
+            <input type="number" id="rotZ" value="0" step="1">
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="layer">Layer (optional)</label>
+        <div class="layer-row">
+          <button class="step-btn" id="layerDown" aria-label="Previous layer">−</button>
+          <input type="number" id="layer" min="1" placeholder="e.g. 4">
+          <button class="step-btn" id="layerUp" aria-label="Next layer">+</button>
+        </div>
+        <button class="clear-layer" id="clearLayer">Show whole model</button>
+
+        <div class="legend">
+          <div class="row"><span class="swatch" style="background:#7c3aed;"></span>Selected layer</div>
+          <div class="row"><span class="swatch" style="background:#ddd6fe;"></span>Layer underneath</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="viewport-wrap">
+      <div id="canvas-holder"></div>
+      <div class="stats-bar" id="statsBar">
+        <span><strong id="statGrid">–</strong> grid</span>
+        <span><strong id="statCount">–</strong> blocks total</span>
+        <span id="statLayer"></span>
+      </div>
+    </main>
+
+  </div>
+
+  <footer class="site">Drag to orbit, scroll to zoom. Blocks are placed by testing each grid cell's centre against the rotated solid.</footer>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+
+  // ---------- geometry definitions ----------
+  const PHI = (1 + Math.sqrt(5)) / 2;
+
+  function cubeVerts(){
+    const v=[];
+    for(const sx of [1,-1]) for(const sy of [1,-1]) for(const sz of [1,-1]) v.push([sx,sy,sz]);
+    return v;
+  }
+  function icosaVerts(){
+    const v=[];
+    for(const s1 of [1,-1]) for(const s2 of [1,-1]){
+      v.push([0, s1*1, s2*PHI]);
+      v.push([s1*1, s2*PHI, 0]);
+      v.push([s2*PHI, 0, s1*1]);
+    }
+    return v;
+  }
+  function dodecaVerts(){
+    const v = cubeVerts();
+    for(const s1 of [1,-1]) for(const s2 of [1,-1]){
+      v.push([0, s1*(1/PHI), s2*PHI]);
+      v.push([s1*(1/PHI), s2*PHI, 0]);
+      v.push([s2*PHI, 0, s1*(1/PHI)]);
+    }
+    return v;
+  }
+
+  const RAW = {
+    tetrahedron: [[1,1,1],[1,-1,-1],[-1,1,-1],[-1,-1,1]],
+    cube: cubeVerts(),
+    octahedron: [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]],
+    icosahedron: icosaVerts(),
+    dodecahedron: dodecaVerts()
+  };
+
+  // Find each unique outward face-normal direction of the convex hull of a
+  // vertex set by brute force: test every triple of vertices as a candidate
+  // face plane, keep it if every other vertex lies on one side (a genuine
+  // supporting plane) and at least 3 vertices lie exactly on it. This works
+  // for any convex, vertex-transitive polytope without needing to assume
+  // anything about dual coordinate conventions - it just finds the real
+  // faces of the actual point set. Run once per solid at load time.
+  function computeFaceNormals(rawVerts, eps = 1e-6){
+    const verts = rawVerts.map(v => new THREE.Vector3(v[0], v[1], v[2]));
+    const found = [];
+    const n = verts.length;
+    for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) for(let k=j+1;k<n;k++){
+      const a = verts[i], b = verts[j], c = verts[k];
+      const nrm = new THREE.Vector3().crossVectors(
+        b.clone().sub(a), c.clone().sub(a)
+      );
+      const len = nrm.length();
+      if(len < 1e-9) continue;
+      nrm.divideScalar(len);
+      let offset = a.dot(nrm);
+      let maxOther = -Infinity;
+      for(const p of verts){ const d = p.dot(nrm); if(d > maxOther) maxOther = d; }
+      if(Math.abs(maxOther - offset) > eps){
+        nrm.negate();
+        offset = -offset;
+        maxOther = -Infinity;
+        for(const p of verts){ const d = p.dot(nrm); if(d > maxOther) maxOther = d; }
+        if(Math.abs(maxOther - offset) > eps) continue; // not a real supporting plane
+      }
+      let supportCount = 0;
+      for(const p of verts){ if(Math.abs(p.dot(nrm) - offset) < 1e-6) supportCount++; }
+      if(supportCount < 3) continue;
+      if(!found.some(f => Math.abs(f.dot(nrm) - 1) < 1e-6)) found.push(nrm);
+    }
+    return found;
+  }
+
+  const FACE_NORMALS = {};
+  for(const name of Object.keys(RAW)) FACE_NORMALS[name] = computeFaceNormals(RAW[name]);
+
+  // Build the rotated/scaled face list for a solid using the support-function
+  // method: a point p is inside the solid iff  dot(p, n) <= offset(n)  for
+  // every outward face normal n, where offset(n) = max over the solid's own
+  // vertices of dot(vertex, n).
+  function buildFaces(name, rotMatrix, scale){
+    const rawV = RAW[name];
+    const circumR = Math.sqrt(rawV[0][0]**2 + rawV[0][1]**2 + rawV[0][2]**2);
+    const verts = rawV.map(v => new THREE.Vector3(v[0],v[1],v[2])
+      .multiplyScalar(scale/circumR)
+      .applyMatrix4(rotMatrix));
+
+    const rotOnly = new THREE.Matrix4().extractRotation(rotMatrix);
+    const normals = FACE_NORMALS[name].map(n => n.clone().applyMatrix4(rotOnly).normalize());
+
+    return normals.map(n => {
+      let offset = -Infinity;
+      for(const v of verts){
+        const d = v.dot(n);
+        if(d > offset) offset = d;
+      }
+      return { n, offset };
+    });
+  }
+
+  function insideSolid(x,y,z, faces, eps){
+    for(const f of faces){
+      if(x*f.n.x + y*f.n.y + z*f.n.z > f.offset + eps) return false;
+    }
+    return true;
+  }
+
+  // ---------- three.js scene ----------
+  const holder = document.getElementById('canvas-holder');
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xf5f6f8);
+
+  const camera = new THREE.PerspectiveCamera(45, holder.clientWidth/holder.clientHeight, 0.1, 2000);
+  const renderer = new THREE.WebGLRenderer({ antialias:true });
+  renderer.setPixelRatio(window.devicePixelRatio || 1);
+  renderer.setSize(holder.clientWidth, holder.clientHeight);
+  holder.appendChild(renderer.domElement);
+
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+  const key = new THREE.DirectionalLight(0xffffff, 0.7);
+  key.position.set(1, 1.4, 0.8);
+  scene.add(key);
+  const fill = new THREE.DirectionalLight(0xffffff, 0.3);
+  fill.position.set(-1, -0.6, -0.5);
+  scene.add(fill);
+
+  const voxelGroup = new THREE.Group();
+  scene.add(voxelGroup);
+  let gridHelper = null;
+
+  function clearGroup(){
+    while(voxelGroup.children.length){
+      const m = voxelGroup.children.pop();
+      m.geometry.dispose();
+      m.material.dispose();
+    }
+  }
+
+  function addInstancedBoxes(cells, N, color, opacity, transparent){
+    if(!cells.length) return;
+    const geo = new THREE.BoxGeometry(0.92, 0.92, 0.92);
+    const mat = new THREE.MeshLambertMaterial({ color, transparent, opacity });
+    const mesh = new THREE.InstancedMesh(geo, mat, cells.length);
+    const half = (N - 1) / 2;
+    const m = new THREE.Matrix4();
+    cells.forEach((c, idx) => {
+      m.makeTranslation(c[0]-half, c[1]-half, c[2]-half);
+      mesh.setMatrixAt(idx, m);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    voxelGroup.add(mesh);
+  }
+
+  function fitCamera(N){
+    const dist = Math.max(N * 1.9, 8);
+    camera.position.set(dist*0.65, dist*0.55, dist*0.75);
+    camera.lookAt(0,0,0);
+    controls.target.set(0,0,0);
+    controls.update();
+  }
+
+  function updateGrid(N){
+    if(gridHelper){ scene.remove(gridHelper); gridHelper.geometry.dispose(); gridHelper.material.dispose(); }
+    gridHelper = new THREE.GridHelper(N, N, 0xd6dade, 0xe9ebee);
+    gridHelper.position.y = -((N-1)/2) - 0.5;
+    scene.add(gridHelper);
+  }
+
+  // ---------- state ----------
+  const state = { solid: 'tetrahedron', N: 15, voxels: [] };
+
+  const diameterInput = document.getElementById('diameter');
+  const rotX = document.getElementById('rotX');
+  const rotY = document.getElementById('rotY');
+  const rotZ = document.getElementById('rotZ');
+  const layerInput = document.getElementById('layer');
+  const statGrid = document.getElementById('statGrid');
+  const statCount = document.getElementById('statCount');
+  const statLayer = document.getElementById('statLayer');
+
+  function clamp(v, lo, hi){ return Math.min(hi, Math.max(lo, v)); }
+
+  function generate(){
+    const N = clamp(parseInt(diameterInput.value) || 15, 2, 60);
+    diameterInput.value = N;
+    layerInput.max = N;
+
+    const rx = THREE.MathUtils.degToRad(parseFloat(rotX.value) || 0);
+    const ry = THREE.MathUtils.degToRad(parseFloat(rotY.value) || 0);
+    const rz = THREE.MathUtils.degToRad(parseFloat(rotZ.value) || 0);
+    const rotMatrix = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(rx, ry, rz, 'XYZ'));
+
+    const scale = N / 2;
+    const faces = buildFaces(state.solid, rotMatrix, scale);
+    const eps = 1e-4 * scale;
+
+    const voxels = [];
+    const half = (N - 1) / 2;
+    for(let i=0;i<N;i++){
+      const x = i - half;
+      for(let j=0;j<N;j++){
+        const y = j - half;
+        for(let k=0;k<N;k++){
+          const z = k - half;
+          if(insideSolid(x,y,z,faces,eps)) voxels.push([i,j,k]);
+        }
+      }
+    }
+
+    state.N = N;
+    state.voxels = voxels;
+    updateGrid(N);
+    fitCamera(N);
+    render();
+  }
+
+  function render(){
+    clearGroup();
+    const N = state.N;
+    const raw = layerInput.value.trim();
+
+    if(raw !== ''){
+      const L = clamp(parseInt(raw) || 1, 1, N);
+      layerInput.value = L;
+      const selJ = L - 1;
+      const belowJ = L - 2;
+      const sel = state.voxels.filter(v => v[1] === selJ);
+      const below = belowJ >= 0 ? state.voxels.filter(v => v[1] === belowJ) : [];
+
+      addInstancedBoxes(sel, N, 0x7c3aed, 1, false);
+      addInstancedBoxes(below, N, 0xddd6fe, 0.55, true);
+
+      statLayer.textContent = `Layer ${L}: ${sel.length} blocks · layer ${L-1}: ${below.length} blocks`;
+    } else {
+      addInstancedBoxes(state.voxels, N, 0x9aa4ad, 1, false);
+      statLayer.textContent = '';
+    }
+
+    statGrid.textContent = `${N} × ${N} × ${N}`;
+    statCount.textContent = state.voxels.length.toLocaleString();
+  }
+
+  // ---------- wiring ----------
+  document.getElementById('solidPicker').addEventListener('click', (e) => {
+    const btn = e.target.closest('.solid-pill');
+    if(!btn) return;
+    document.querySelectorAll('.solid-pill').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    state.solid = btn.dataset.solid;
+    generate();
+  });
+
+  let debounceTimer = null;
+  function debouncedGenerate(){
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(generate, 120);
+  }
+  [diameterInput, rotX, rotY, rotZ].forEach(el => el.addEventListener('input', debouncedGenerate));
+
+  layerInput.addEventListener('input', render);
+  document.getElementById('layerDown').addEventListener('click', () => {
+    const cur = parseInt(layerInput.value) || 1;
+    layerInput.value = clamp(cur - 1, 1, state.N);
+    render();
+  });
+  document.getElementById('layerUp').addEventListener('click', () => {
+    const cur = parseInt(layerInput.value) || 0;
+    layerInput.value = clamp(cur + 1, 1, state.N);
+    render();
+  });
+  document.getElementById('clearLayer').addEventListener('click', () => {
+    layerInput.value = '';
+    render();
+  });
+
+  window.addEventListener('resize', () => {
+    camera.aspect = holder.clientWidth / holder.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(holder.clientWidth, holder.clientHeight);
+  });
+
+  function animate(){
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+  }
+
+  generate();
+  animate();
+
+})();
+</script>
+
+</body>
+</html>
