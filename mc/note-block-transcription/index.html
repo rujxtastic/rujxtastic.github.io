@@ -52,7 +52,7 @@
   input[type=range]::-moz-range-thumb{
     width:13px;height:13px;border-radius:50%;background:var(--acc);cursor:pointer;border:2px solid #0b0f14;
   }
-  input[type=checkbox]{ width:16px; height:16px; cursor:pointer }
+  input[type=checkbox],input[type=radio]{ width:15px; height:15px; cursor:pointer; accent-color:var(--acc); }
   .btns{display:flex;flex-wrap:wrap;gap:8px}
   button{
     font-family:inherit;font-size:12px;padding:9px 15px;border-radius:7px;cursor:pointer;
@@ -75,7 +75,44 @@
   }
   .tagline{font-size:10px;color:var(--dim);letter-spacing:.5px}
   .badge{display:inline-block;padding:1px 6px;border-radius:4px;background:#1c2534;color:var(--acc);font-size:10px;margin-left:6px}
-  /* ---- Home button (top-right) ---- */
+
+  /* Source mode radio group */
+  .mode-row{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:12px;align-items:center}
+  .mode-row label{
+    display:inline-flex;flex-direction:row;align-items:center;gap:7px;
+    padding:7px 12px;border-radius:7px;background:#0d1219;border:1px solid var(--line);
+    cursor:pointer;transition:.12s;font-size:11.5px;letter-spacing:.5px;color:var(--dim);
+  }
+  .mode-row label:hover{border-color:#3d4d68;color:var(--fg)}
+  .mode-row label.active{border-color:var(--acc);color:var(--fg);background:#101a1c;box-shadow:inset 0 0 0 1px rgba(78,201,176,.2)}
+  .mode-row input{display:none}
+
+  .panel{display:none}
+  .panel.active{display:block}
+
+  /* Default notes grid */
+  .notes-grid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));
+    gap:6px;margin-top:4px;
+  }
+  .note-toggle{
+    display:flex;align-items:center;gap:8px;
+    padding:7px 10px;border-radius:6px;background:#0d1219;
+    border:1px solid var(--line);cursor:pointer;transition:.12s;user-select:none;
+    font-size:11px;letter-spacing:.3px;
+  }
+  .note-toggle:hover{border-color:#3d4d68;background:#111823}
+  .note-toggle.disabled{opacity:.4;cursor:not-allowed}
+  .note-toggle input{flex-shrink:0}
+  .note-toggle .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .note-toggle .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .note-toggle .src{font-size:9px;color:var(--dim);letter-spacing:.5px}
+  .note-toggle .src.ok{color:var(--acc)}
+  .note-toggle .src.synth{color:var(--warn)}
+  .note-toggle .src.fail{color:var(--err)}
+  .grid-actions{display:flex;gap:8px;margin:10px 0 4px;flex-wrap:wrap;font-size:11px}
+
+  /* Home button */
   .home-btn{
     position: fixed; top: 16px; right: 20px;
     display: inline-flex; align-items: center; gap: 6px;
@@ -92,7 +129,6 @@
   @media(max-width:600px){
     .home-btn{ top: 12px; right: 12px; padding: 6px 10px; font-size: 11px; }
   }
-  /* ---- Small note under the title ---- */
   .subnote{
     margin: 6px 0 8px; font-size: 11.5px; color: var(--dim); letter-spacing: .3px;
   }
@@ -101,7 +137,6 @@
     border-bottom: 1px dotted rgba(78,201,176,.55);
   }
   .subnote a:hover{ color: #7fe3cc; border-bottom-color: #7fe3cc; }
-  /* ---- Footer at page bottom ---- */
   #site-footer{
     max-width: 1180px; margin: 0 auto; padding: 26px 20px 44px;
     border-top: 1px solid var(--line); color: var(--dim);
@@ -121,37 +156,70 @@
 </head>
 <body>
 <header>
-  <a class="home-btn" href="https://rujxtastic.github.io/"
-     title="Back to Rujxtastic">⌂ Home</a>
+  <a class="home-btn" href="https://rujxtastic.github.io/" title="Back to Rujxtastic">⌂ Home</a>
   <h1>🎵 Note Block <span>Transcriber</span></h1>
   <p class="subnote">
     A client-side audio → Minecraft note block converter by
     <a href="https://rujxtastic.github.io/">Rujx</a> ·
     <a href="#site-footer">read more in the footer ↓</a>
   </p>
-  <p>Turn any audio file into Minecraft note block events — spectral matching against the 16 note block instruments across 25 pitches (F♯3–F♯5).</p>
+  <p>Turn any audio file into Minecraft note block events — spectral matching across 25 pitches (F♯3–F♯5).</p>
 </header>
 
 <main>
-  <div class="cols">
-    <section class="card">
-      <h2>1 · Target Audio</h2>
-      <div class="drop" id="dropAudio">
-        <input type="file" id="fileAudio" accept="audio/*" hidden>
-        <p><strong>Drop audio here</strong><br><span class="tagline">or click to browse</span></p>
-        <p class="hint" id="audioName">No file loaded</p>
-      </div>
-    </section>
+  <section class="card">
+    <h2>1 · Target Audio</h2>
+    <div class="drop" id="dropAudio">
+      <input type="file" id="fileAudio" accept="audio/*" hidden>
+      <p><strong>Drop audio here</strong><br><span class="tagline">or click to browse</span></p>
+      <p class="hint" id="audioName">No file loaded</p>
+    </div>
+  </section>
 
-    <section class="card">
-      <h2>2 · Game Sounds <span class="badge" id="soundMode">SYNTHETIC</span></h2>
+  <section class="card">
+    <h2>2 · Sound Source <span class="badge" id="soundModeBadge">DEFAULT</span></h2>
+
+    <div class="mode-row" id="modeRow">
+      <label data-mode="default" class="active"><input type="radio" name="sndMode" value="default" checked>◉ Default (repo)</label>
+      <label data-mode="custom"><input type="radio" name="sndMode" value="custom">⬆ Custom (upload)</label>
+      <label data-mode="synthetic"><input type="radio" name="sndMode" value="synthetic">✧ Synthetic</label>
+    </div>
+
+    <!-- DEFAULT PANEL -->
+    <div class="panel active" id="panelDefault">
+      <div class="tagline" id="defaultStatus" style="margin-bottom:8px">Loading default notes from <code>../assets/note-block-notes/</code>…</div>
+      <div class="grid-actions">
+        <button id="btnAllDefault" style="font-size:10px;padding:5px 10px">✓ All</button>
+        <button id="btnNoneDefault" style="font-size:10px;padding:5px 10px">✗ None</button>
+        <button id="btnReloadDefault" style="font-size:10px;padding:5px 10px">⟳ Reload</button>
+        <span class="tagline" style="margin-left:auto" id="defaultCount">0/16 enabled</span>
+      </div>
+      <div class="notes-grid" id="notesGrid"></div>
+    </div>
+
+    <!-- CUSTOM PANEL -->
+    <div class="panel" id="panelCustom">
       <div class="drop" id="dropSounds">
         <input type="file" id="fileSounds" accept=".ogg,.zip,audio/ogg,application/zip,application/x-zip-compressed" multiple hidden>
         <p><strong>Drop note.*.ogg files or a .zip</strong><br><span class="tagline">or click to browse · folder drops supported</span></p>
-        <p class="hint" id="soundName">Using Web Audio synthetic approximations</p>
+        <p class="hint" id="soundName">No custom files loaded</p>
       </div>
-    </section>
-  </div>
+      <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+        <button id="btnLoadNotes" style="font-size:11px;padding:6px 12px">📄 Load notes.json from repo</button>
+        <button id="btnPickNotes" style="font-size:11px;padding:6px 12px">📂 Upload notes file…</button>
+        <input type="file" id="fileNotes" accept=".json,.js" hidden>
+        <span id="notesStatus" class="tagline">No custom bank loaded</span>
+      </div>
+    </div>
+
+    <!-- SYNTHETIC PANEL -->
+    <div class="panel" id="panelSynth">
+      <div class="tagline">
+        Using built-in Web Audio approximations for all 16 instruments — no external files needed.
+        Quality is a rough stand-in; load default or custom samples for accuracy.
+      </div>
+    </div>
+  </section>
 
   <section class="card">
     <h2>3 · Parameters</h2>
@@ -172,7 +240,7 @@
   </section>
 
   <section class="card">
-    <h2>3b · Mix &amp; Custom Notes</h2>
+    <h2>4 · Mix</h2>
     <div class="controls">
       <label>Bass cut <output id="bassOut">-15 dB</output>
         <input type="range" id="bassDb" min="0" max="24" step="1" value="15">
@@ -181,20 +249,10 @@
         <input type="range" id="trebleDb" min="0" max="18" step="1" value="12">
       </label>
     </div>
-    <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">
-      <label style="display:inline-flex;flex-direction:row;align-items:center;gap:8px;font-size:11px;color:var(--dim);letter-spacing:.6px;cursor:pointer">
-        <input type="checkbox" id="useCustom" style="accent-color:var(--acc)">
-        Use custom notes bank
-      </label>
-      <button id="btnLoadNotes" style="font-size:11px;padding:6px 12px">📄 Load notes.json from repo</button>
-      <button id="btnPickNotes" style="font-size:11px;padding:6px 12px">📂 Upload notes file…</button>
-      <input type="file" id="fileNotes" accept=".json,.js" hidden>
-      <span id="notesStatus" class="tagline">No custom bank loaded</span>
-    </div>
   </section>
 
   <section class="card">
-    <h2>4 · Actions</h2>
+    <h2>5 · Actions</h2>
     <div class="btns">
       <button id="btnAnalyze" class="primary" disabled>⚙ Analyze</button>
       <button id="btnPlay" disabled>▶ Play</button>
@@ -208,7 +266,7 @@
   </section>
 
   <section class="card">
-    <h2>5 · Timeline</h2>
+    <h2>6 · Timeline</h2>
     <canvas id="timeline" height="260"></canvas>
     <div class="legend" id="legend"></div>
   </section>
@@ -222,21 +280,16 @@
 <footer id="site-footer">
   <h2>About this tool</h2>
   <p>
-    <strong>Note Block Transcriber</strong> is a fully client-side web app that converts
-    uploaded audio into Minecraft note block events. Nothing leaves your browser — all
-    decoding, FFT analysis, spectral matching, and file export happen locally using the
-    Web Audio API.
+    This was entirely coded with the free Deepseek V4 Pro model. While normally I don't like to freely advertise my use of AI, I would like to separate this work from other similar projects I've made that did not use AI.
   </p>
   <p>
     Built by <a href="https://rujxtastic.github.io/">Rujx</a>.
-    More projects, source code, and contact info at
-    <a href="https://rujxtastic.github.io/">rujxtastic.github.io</a>.
+    More projects at <a href="https://rujxtastic.github.io/">rujxtastic.github.io</a>.
   </p>
   <p>
-    Sound bank samples are read from user-supplied <code>.ogg</code> files, or synthesised
-    with Web Audio nodes when none are provided. Exports produce a standard
-    <code>.nbs</code> file for Note Block Studio, a <code>.mcfunction</code> for datapacks,
-    or a rendered <code>.wav</code> / <code>.mp3</code> of the transcription.
+    Default samples load from <code>../assets/note-block-notes/</code>. Custom samples can be
+    uploaded directly. Exports produce <code>.nbs</code>, <code>.mcfunction</code>,
+    <code>.wav</code>, or <code>.mp3</code> files.
   </p>
   <p class="fineprint">
     Not affiliated with Mojang or Microsoft. Minecraft is a trademark of Mojang Synergies AB.
@@ -245,13 +298,13 @@
 
 <script>
 "use strict";
-/* =========================================================================
-   CONSTANTS & SOUND BANK DEFINITION
-   ========================================================================= */
-
-const NOTES = 25;                       // F#3 .. F#5 inclusive
-const BASE_NOTE = 12;                   // index of F#4 (sample played at rate 1.0)
-const NBS_BASE_KEY = 33;                // NBS key for F#3
+/* ============================================================
+   CONSTANTS
+   ============================================================ */
+const NOTES = 25;
+const BASE_NOTE = 12;                   // F#4 index
+const NBS_BASE_KEY = 33;                // NBS F#3
+const DEFAULT_NOTES_BASE = '../assets/note-block-notes/';
 
 const INSTRUMENTS = [
   {id:0,  name:'harp',            sound:'block.note_block.harp',            synth:'harp',       perc:null},
@@ -272,14 +325,12 @@ const INSTRUMENTS = [
   {id:15, name:'pling',           sound:'block.note_block.pling',           synth:'pling',      perc:null},
 ];
 
-const BPO   = 12;
-const FMIN  = 40;
-const FMAX  = 12000;
-const NB    = Math.round(BPO * Math.log2(FMAX / FMIN));
+const BPO = 12, FMIN = 40, FMAX = 12000;
+const NB = Math.round(BPO * Math.log2(FMAX / FMIN));
 
-/* =========================================================================
+/* ============================================================
    FFT
-   ========================================================================= */
+   ============================================================ */
 class FFT {
   constructor(n){
     this.n = n;
@@ -322,14 +373,12 @@ class FFT {
     }
   }
 }
-
 const fftCache = new Map();
 function getFFT(n){
   let f = fftCache.get(n);
   if (!f){ f = new FFT(n); fftCache.set(n, f); }
   return f;
 }
-
 const binMapCache = new Map();
 function getBinMap(fftSize, sr){
   const key = fftSize + '@' + sr;
@@ -352,7 +401,6 @@ function getBinMap(fftSize, sr){
   binMapCache.set(key, m);
   return m;
 }
-
 function computeBands(re, im, binMap, out){
   const { binBand, bandCount } = binMap;
   out.fill(0);
@@ -367,14 +415,13 @@ function computeBands(re, im, binMap, out){
   }
 }
 
-/* =========================================================================
+/* ============================================================
    STATE
-   ========================================================================= */
+   ============================================================ */
 const state = {
   audioCtx: null,
   targetBuffer: null,
   targetName: '',
-  loadedSounds: new Map(),
   bank: null,
   events: [],
   totalTicks: 0,
@@ -391,20 +438,30 @@ const state = {
   bassDb: 15,
   trebleDb: 12,
   eqBus: null,
-  customData: null,
+  // Sound source management
+  soundMode: 'default',        // 'default' | 'custom' | 'synthetic'
+  defaultSounds: new Map(),    // name -> AudioBuffer
+  defaultEnabled: new Set(),   // names user has checked
+  defaultLoaded: false,
+  defaultLoading: false,
+  customSounds: new Map(),     // name -> AudioBuffer
+  customLoaded: false,
 };
 
 const els = {};
-['dropAudio','fileAudio','audioName','dropSounds','fileSounds','soundName','soundMode',
+['dropAudio','fileAudio','audioName','dropSounds','fileSounds','soundName','soundModeBadge',
+ 'modeRow','panelDefault','panelCustom','panelSynth','defaultStatus','defaultCount',
+ 'notesGrid','btnAllDefault','btnNoneDefault','btnReloadDefault',
+ 'btnLoadNotes','btnPickNotes','fileNotes','notesStatus',
  'tickMs','tickOut','poly','polyOut','pitch','pitchOut','sens','sensOut',
- 'bassDb','bassOut','trebleDb','trebleOut','useCustom','btnLoadNotes','btnPickNotes',
- 'fileNotes','notesStatus',
- 'btnAnalyze','btnPlay','btnStop','btnWAV','btnMP3','btnNBS','btnMCF','bar','timeline','legend','log']
+ 'bassDb','bassOut','trebleDb','trebleOut',
+ 'btnAnalyze','btnPlay','btnStop','btnWAV','btnMP3','btnNBS','btnMCF',
+ 'bar','timeline','legend','log']
  .forEach(id => els[id] = document.getElementById(id));
 
-/* =========================================================================
+/* ============================================================
    HELPERS
-   ========================================================================= */
+   ============================================================ */
 function log(msg){
   const el = els.log;
   el.textContent += msg + '\n';
@@ -423,7 +480,6 @@ function getCtx(){
   }
   return state.audioCtx;
 }
-
 function mixdown(buffer){
   const len = buffer.length, nch = buffer.numberOfChannels;
   const mono = new Float32Array(len);
@@ -433,14 +489,13 @@ function mixdown(buffer){
   }
   return mono;
 }
-
 function instrumentColor(i){
   return `hsl(${(i * 137.508) % 360}, 68%, 62%)`;
 }
 
-/* =========================================================================
-   SYNTHETIC FALLBACK SOUND BANK
-   ========================================================================= */
+/* ============================================================
+   SYNTHETIC FALLBACK
+   ============================================================ */
 function makeSynthBuffer(type){
   const ctx = getCtx();
   const sr = ctx.sampleRate;
@@ -448,7 +503,7 @@ function makeSynthBuffer(type){
   const len = Math.max(64, Math.floor(sr * dur));
   const buf = ctx.createBuffer(1, len, sr);
   const d = buf.getChannelData(0);
-  const f0 = 369.99;              // F#4
+  const f0 = 369.99;
   const TAU = Math.PI * 2;
 
   function addHarmonics(f, decay, amps, attack){
@@ -475,7 +530,6 @@ function makeSynthBuffer(type){
     case 'banjo':       addHarmonics(f0, 0.35, [1,0.60,0.40,0.30,0.22,0.15], 0.002); break;
     case 'pling':       addHarmonics(f0, 1.30, [1,0.25,0.10,0.05], 0.003); break;
     case 'didgeridoo':  addHarmonics(f0/2, 0.90, [1,0.50,0.35,0.25,0.20,0.15,0.12,0.10], 0.02); break;
-
     case 'bit': {
       for (let i = 0; i < len; i++){
         const t = i / sr;
@@ -536,9 +590,9 @@ function makeSynthBuffer(type){
   return buf;
 }
 
-/* =========================================================================
-   SAMPLE FINGERPRINTING
-   ========================================================================= */
+/* ============================================================
+   FINGERPRINTING
+   ============================================================ */
 function estimateDecay(mono, sr, start){
   const block = Math.max(1, Math.floor(sr * 0.005));
   const avail = Math.max(0, mono.length - start);
@@ -562,7 +616,6 @@ function estimateDecay(mono, sr, start){
 }
 
 const REF_FFT = 8192;
-
 function computeFingerprint(buffer){
   const sr = buffer.sampleRate;
   const mono = mixdown(buffer);
@@ -603,14 +656,1252 @@ function computeFingerprint(buffer){
     for (let i = i0; i < i1; i++){ const v = bands[i - lag]; s += v * v; }
     normSq[n] = Math.max(s, 1e-9);
   }
-
   const tau = estimateDecay(mono, sr, start);
   return { bands, normSq, tau };
 }
 
-/* =========================================================================
-   SOUND BANK BUILDING
-   ========================================================================= */
-function normalizeName(name){
-  return name.split('/').pop()
-             .replace(/\.ogg$/i, '')
+/* ============================================================
+   DEFAULT NOTES LOADING
+   ============================================================ */
+async function loadDefaultSounds(force){
+  if (state.defaultLoading) return;
+  if (state.defaultLoaded && !force) return;
+  state.defaultLoading = true;
+  state.defaultLoaded = false;
+  state.defaultSounds = new Map();
+  state.defaultEnabled = new Set();
+
+  els.defaultStatus.textContent = 'Loading default notes from ../assets/note-block-notes/…';
+  const ctx = getCtx();
+  let ok = 0, fail = 0;
+
+  for (const inst of INSTRUMENTS){
+    const candidates = [
+      'note.' + inst.name + '.ogg',
+      inst.name + '.ogg',
+      inst.name.replace(/_/g,'') + '.ogg',
+    ];
+    let loaded = false;
+    for (const fname of candidates){
+      try {
+        const r = await fetch(DEFAULT_NOTES_BASE + fname, { cache: 'force-cache' });
+        if (!r.ok) continue;
+        const ab = await r.arrayBuffer();
+        if (ab.byteLength < 64) continue;
+        const buf = await ctx.decodeAudioData(ab);
+        state.defaultSounds.set(inst.name, buf);
+        state.defaultEnabled.add(inst.name);
+        loaded = true; ok++;
+        break;
+      } catch (e) { /* try next candidate */ }
+    }
+    if (!loaded) fail++;
+    if ((ok + fail) % 4 === 0) renderDefaultGrid();
+    await yieldToUI();
+  }
+
+  state.defaultLoading = false;
+  state.defaultLoaded = true;
+
+  if (ok === 0){
+    els.defaultStatus.innerHTML = '<span style="color:var(--err)">⚠ No default notes found at ' +
+      DEFAULT_NOTES_BASE + ' — check the folder path &amp; file names (note.&lt;name&gt;.ogg)</span>';
+  } else {
+    els.defaultStatus.innerHTML = '<span style="color:var(--acc)">✔ ' + ok +
+      '/16 default notes loaded from ' + DEFAULT_NOTES_BASE + '</span>' +
+      (fail ? ' · ' + fail + ' missing (will use synthetic)' : '');
+  }
+  renderDefaultGrid();
+  state.bank = null;
+  log('Default notes: ' + ok + ' loaded, ' + fail + ' missing.');
+}
+
+function renderDefaultGrid(){
+  const grid = els.notesGrid;
+  grid.innerHTML = '';
+  for (const inst of INSTRUMENTS){
+    const avail = state.defaultSounds.has(inst.name);
+    const enabled = state.defaultEnabled.has(inst.name);
+    const div = document.createElement('label');
+    div.className = 'note-toggle' + (avail ? '' : ' disabled');
+    const color = instrumentColor(inst.id);
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = enabled;
+    cb.disabled = !avail;
+    cb.dataset.name = inst.name;
+    cb.addEventListener('change', () => {
+      if (cb.checked) state.defaultEnabled.add(inst.name);
+      else state.defaultEnabled.delete(inst.name);
+      updateDefaultCount();
+      state.bank = null;
+    });
+
+    const dot = document.createElement('span');
+    dot.className = 'dot';
+    dot.style.background = color;
+
+    const nm = document.createElement('span');
+    nm.className = 'nm';
+    nm.textContent = inst.name;
+
+    const src = document.createElement('span');
+    if (avail){ src.className = 'src ok'; src.textContent = 'ogg'; }
+    else { src.className = 'src synth'; src.textContent = 'synth'; }
+
+    div.appendChild(cb);
+    div.appendChild(dot);
+    div.appendChild(nm);
+    div.appendChild(src);
+    grid.appendChild(div);
+  }
+  updateDefaultCount();
+}
+
+function updateDefaultCount(){
+  els.defaultCount.textContent = state.defaultEnabled.size + '/' + INSTRUMENTS.length + ' enabled';
+}
+
+/* ============================================================
+   CUSTOM NOTES
+   ============================================================ */
+function normalizeCustomInstruments(data){
+  if (!data || typeof data !== 'object') return [];
+  const list = Array.isArray(data) ? data
+             : Array.isArray(data.instruments) ? data.instruments
+             : [];
+  return list.filter(d => d && d.name && d.url);
+}
+async function fetchNotesFile(url){
+  const r = await fetch(url, { cache: 'no-cache' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const txt = await r.text();
+  try { return JSON.parse(txt); }
+  catch (_){
+    const fn = new Function('window','globalThis',
+      txt + '\n;return window.CUSTOM_NOTES || globalThis.CUSTOM_NOTES;');
+    const shim = {};
+    return fn(shim, shim) || shim.CUSTOM_NOTES || null;
+  }
+}
+async function applyCustomNotes(data){
+  const list = normalizeCustomInstruments(data);
+  if (!list.length){
+    log('Custom notes file has no usable {name,url} entries.');
+    return false;
+  }
+  const ctx = getCtx();
+  const loaded = new Map();
+  for (const def of list){
+    try {
+      const r = await fetch(def.url, { cache: 'force-cache' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const ab = await r.arrayBuffer();
+      const buf = await ctx.decodeAudioData(ab);
+      const key = def.name.replace(/_/g, '').toLowerCase();
+      loaded.set(key, buf);
+    } catch (err){
+      log('Custom sample "' + def.name + '" failed: ' + err.message);
+    }
+    await yieldToUI();
+  }
+  if (!loaded.size) return false;
+  state.customSounds = loaded;
+  state.customLoaded = true;
+  state.bank = null;
+  els.soundName.innerHTML = '<span class="ok">✔ Custom bank (' + loaded.size + ')</span><br>' +
+    [...loaded.keys()].sort().join(', ');
+  log('Custom bank applied: ' + loaded.size + ' instrument(s).');
+  return true;
+}
+
+/* ============================================================
+   FILE DROPS
+   ============================================================ */
+function wireDrop(dropEl, inputEl, handler){
+  dropEl.addEventListener('click', e => {
+    if (e.target === inputEl) return;
+    inputEl.click();
+  });
+  inputEl.addEventListener('change', async () => {
+    if (inputEl.files && inputEl.files.length) await handler(Array.from(inputEl.files));
+    inputEl.value = '';
+  });
+  ['dragenter','dragover'].forEach(ev =>
+    dropEl.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); dropEl.classList.add('over'); }));
+  ['dragleave','drop'].forEach(ev =>
+    dropEl.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); dropEl.classList.remove('over'); }));
+  dropEl.addEventListener('drop', async e => {
+    const files = await filesFromDataTransfer(e.dataTransfer);
+    if (files.length) await handler(files);
+  });
+}
+function walkEntry(entry, out){
+  return new Promise(resolve => {
+    if (!entry) return resolve();
+    if (entry.isFile){
+      entry.file(f => { out.push(f); resolve(); }, () => resolve());
+    } else if (entry.isDirectory){
+      const reader = entry.createReader();
+      const all = [];
+      const readBatch = () => {
+        reader.readEntries(async ents => {
+          if (!ents.length){
+            for (const e of all) await walkEntry(e, out);
+            resolve(); return;
+          }
+          all.push(...ents);
+          readBatch();
+        }, () => resolve());
+      };
+      readBatch();
+    } else resolve();
+  });
+}
+async function filesFromDataTransfer(dt){
+  const items = dt.items;
+  if (items && items.length && items[0].webkitGetAsEntry){
+    const entries = [];
+    for (const it of items){
+      const e = it.webkitGetAsEntry ? it.webkitGetAsEntry() : null;
+      if (e) entries.push(e);
+    }
+    if (entries.length){
+      const out = [];
+      for (const e of entries) await walkEntry(e, out);
+      if (out.length) return out;
+    }
+  }
+  return Array.from(dt.files || []);
+}
+
+/* ---- Target audio ---- */
+async function handleAudioFiles(files){
+  const f = files[0];
+  if (!f) return;
+  els.audioName.textContent = 'Decoding ' + f.name + '…';
+  try {
+    const ab = await f.arrayBuffer();
+    const ctx = getCtx();
+    const buf = await ctx.decodeAudioData(ab);
+    state.targetBuffer = buf;
+    state.targetName = f.name.replace(/\.[^.]+$/, '');
+    els.audioName.innerHTML = '<span class="ok">✔ ' + f.name + '</span><br>' +
+      buf.duration.toFixed(2) + ' s · ' + buf.sampleRate + ' Hz · ' + buf.numberOfChannels + ' ch';
+    els.btnAnalyze.disabled = false;
+    log('Loaded target "' + f.name + '" (' + buf.duration.toFixed(2) + 's).');
+  } catch (err){
+    els.audioName.textContent = '⚠ Could not decode ' + f.name;
+    log('ERROR decoding target audio: ' + err.message);
+  }
+}
+
+/* ---- Custom sound files ---- */
+async function handleSoundFiles(files){
+  els.soundName.textContent = 'Reading ' + files.length + ' file(s)…';
+  const ctx = getCtx();
+  const rawOggs = [];
+
+  for (const f of files){
+    const name = f.name || '';
+    try {
+      if (/\.zip$/i.test(name)){
+        const ab = await f.arrayBuffer();
+        const oggs = await extractOggsFromZip(ab);
+        log('ZIP "' + name + '": ' + oggs.length + ' .ogg entries.');
+        rawOggs.push(...oggs);
+      } else if (/\.ogg$/i.test(name) || /audio\/ogg/.test(f.type)){
+        rawOggs.push({ name: f.webkitRelativePath || name, data: await f.arrayBuffer() });
+      }
+    } catch (err){
+      log('WARN: could not read ' + name + ' — ' + err.message);
+    }
+  }
+  if (!rawOggs.length){
+    els.soundName.textContent = 'No .ogg files found';
+    return;
+  }
+
+  const loaded = new Map(state.customSounds);
+  let ok = 0, fail = 0;
+  for (const o of rawOggs){
+    const inst = matchInstrument(o.name);
+    if (!inst) continue;
+    try {
+      const buf = await ctx.decodeAudioData(o.data.slice(0));
+      loaded.set(inst.name.replace(/_/g, ''), buf);
+      ok++;
+    } catch (e){ fail++; }
+    if (ok % 4 === 0) await yieldToUI();
+  }
+
+  if (!loaded.size){
+    els.soundName.textContent = 'Found .ogg files but none decodable / recognised';
+    log('WARN: no decodable instrument samples.');
+    return;
+  }
+  state.customSounds = loaded;
+  state.customLoaded = true;
+  state.bank = null;
+  const names = [...loaded.keys()].sort().join(', ');
+  els.soundName.innerHTML = '<span class="ok">✔ ' + loaded.size + ' custom instrument(s)</span><br>' + names;
+  log('Custom bank: ' + loaded.size + ' loaded (' + fail + ' failed).');
+}
+
+/* ============================================================
+   ZIP READER
+   ============================================================ */
+async function readZipEntries(arrayBuffer){
+  const dv = new DataView(arrayBuffer);
+  const u8 = new Uint8Array(arrayBuffer);
+  let eocd = -1;
+  const minPos = Math.max(0, u8.length - 65558);
+  for (let i = u8.length - 22; i >= minPos; i--){
+    if (dv.getUint32(i, true) === 0x06054b50){ eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('Not a valid ZIP');
+  const count = dv.getUint16(eocd + 10, true);
+  const cdOffset = dv.getUint32(eocd + 16, true);
+  const entries = [];
+  let p = cdOffset;
+  const dec = new TextDecoder();
+  for (let i = 0; i < count; i++){
+    if (p + 46 > u8.length) break;
+    if (dv.getUint32(p, true) !== 0x02014b50) break;
+    const method    = dv.getUint16(p + 10, true);
+    const compSize  = dv.getUint32(p + 20, true);
+    const nameLen   = dv.getUint16(p + 28, true);
+    const extraLen  = dv.getUint16(p + 30, true);
+    const cmtLen    = dv.getUint16(p + 32, true);
+    const localOff  = dv.getUint32(p + 42, true);
+    const name = dec.decode(u8.subarray(p + 46, p + 46 + nameLen));
+    entries.push({ name, method, compSize, localOff });
+    p += 46 + nameLen + extraLen + cmtLen;
+  }
+  for (const e of entries){
+    const lnameLen  = dv.getUint16(e.localOff + 26, true);
+    const lextraLen = dv.getUint16(e.localOff + 28, true);
+    e.dataStart = e.localOff + 30 + lnameLen + lextraLen;
+  }
+  return { entries, u8 };
+}
+async function inflateRaw(bytes){
+  if (typeof DecompressionStream === 'undefined') throw new Error('DecompressionStream unsupported');
+  const ds = new DecompressionStream('deflate-raw');
+  const stream = new Blob([bytes]).stream().pipeThrough(ds);
+  return await new Response(stream).arrayBuffer();
+}
+async function extractOggsFromZip(arrayBuffer){
+  const { entries, u8 } = await readZipEntries(arrayBuffer);
+  const out = [];
+  for (const e of entries){
+    if (!/\.ogg$/i.test(e.name)) continue;
+    const chunk = u8.subarray(e.dataStart, e.dataStart + e.compSize);
+    let raw;
+    if (e.method === 0) raw = chunk.slice().buffer;
+    else if (e.method === 8) raw = await inflateRaw(chunk);
+    else continue;
+    out.push({ name: e.name, data: raw });
+  }
+  return out;
+}
+
+/* ============================================================
+   INSTRUMENT NAME MATCHER
+   ============================================================ */
+function matchInstrument(filename){
+  const base = filename.split('/').pop()
+                       .replace(/\.ogg$/i,'')
+                       .replace(/[^a-z0-9]/gi,'')
+                       .toLowerCase();
+  const sorted = INSTRUMENTS.slice().sort((a,b)=>b.name.length-a.name.length);
+  for (const inst of sorted){
+    const n = inst.name.replace(/_/g,'');
+    if (base === n) return inst;
+    if (base === 'note' + n) return inst;
+    if (base.endsWith(n) && base.length <= n.length + 8) return inst;
+  }
+  if (base.includes('bassdrum') || base.includes('kick')) return INSTRUMENTS[4];
+  if (base.includes('click')) return INSTRUMENTS[3];
+  return null;
+}
+
+/* ============================================================
+   BANK BUILDING
+   ============================================================ */
+async function buildBank(){
+  const bank = [];
+  const counts = { default: 0, custom: 0, synth: 0 };
+
+  for (const inst of INSTRUMENTS){
+    let buffer = null;
+    let source = 'synth';
+
+    if (state.soundMode === 'default'){
+      if (state.defaultEnabled.has(inst.name) && state.defaultSounds.has(inst.name)){
+        buffer = state.defaultSounds.get(inst.name);
+        source = 'default';
+      }
+    } else if (state.soundMode === 'custom'){
+      const key = inst.name.replace(/_/g,'');
+      const cbuf = state.customSounds.get(key) || state.customSounds.get(inst.name);
+      if (cbuf){ buffer = cbuf; source = 'custom'; }
+    }
+
+    if (!buffer){
+      buffer = makeSynthBuffer(inst.synth);
+      source = 'synth';
+    }
+    counts[source]++;
+
+    const fp = computeFingerprint(buffer);
+    bank.push({
+      inst, buffer,
+      bands: fp.bands,
+      normSq: fp.normSq,
+      tau: fp.tau,
+      synthetic: source === 'synth',
+    });
+    await yieldToUI();
+  }
+
+  log('Bank built: ' + counts.default + ' default · ' + counts.custom + ' custom · ' + counts.synth + ' synthetic');
+  updateModeBadge();
+  return bank;
+}
+async function ensureBank(force){
+  if (state.bank && !force) return state.bank;
+  log('Building sound bank…');
+  await yieldToUI();
+  state.bank = await buildBank();
+  return state.bank;
+}
+
+function updateModeBadge(){
+  const b = els.soundModeBadge;
+  if (state.soundMode === 'default'){
+    b.textContent = state.defaultEnabled.size + '/16 DEFAULT';
+    b.style.color = state.defaultEnabled.size ? 'var(--acc)' : 'var(--warn)';
+  } else if (state.soundMode === 'custom'){
+    b.textContent = state.customSounds.size + ' CUSTOM';
+    b.style.color = state.customSounds.size ? 'var(--acc2)' : 'var(--warn)';
+  } else {
+    b.textContent = 'SYNTHETIC';
+    b.style.color = 'var(--warn)';
+  }
+}
+
+/* ============================================================
+   PERCUSSION WEIGHT
+   ============================================================ */
+function percWeight(inst, noise, lowRatio){
+  if (inst.perc === 'noise') return 0.40 + 1.90 * noise;
+  if (inst.perc === 'low')   return 0.40 + 1.90 * (1 - noise) * Math.min(1, lowRatio * 4);
+  return 1.0 - 0.30 * noise;
+}
+
+/* ============================================================
+   ANALYSIS
+   ============================================================ */
+async function runAnalysis(){
+  if (!state.targetBuffer) return;
+  if (state.playing) stopPlayback();
+
+  els.btnAnalyze.disabled = true;
+  els.btnPlay.disabled = true;
+  els.btnNBS.disabled = true;
+  els.btnMCF.disabled = true;
+  els.btnWAV.disabled = true;
+  els.btnMP3.disabled = true;
+  setProgress(0);
+
+  try { await ensureBank(false); }
+  catch (e){
+    log('ERROR building bank: ' + e.message);
+    els.btnAnalyze.disabled = false;
+    return;
+  }
+
+  const buf = state.targetBuffer;
+  const sr = buf.sampleRate;
+  const tickSec = state.tickMs / 1000;
+  const hop = Math.max(1, Math.round(tickSec * sr));
+  let fftSize = nextPow2(Math.max(hop, 256));
+  fftSize = clamp(fftSize, 256, 16384);
+
+  log('Analyzing: tick=' + state.tickMs + 'ms · hop=' + hop + ' · FFT=' + fftSize +
+      ' · poly=' + state.maxPoly + ' · shift=' + state.pitchShift + 'st');
+
+  const mono = mixdown(buf);
+  const win = new Float32Array(fftSize);
+  for (let i = 0; i < fftSize; i++) win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (fftSize - 1));
+
+  const binMap = getBinMap(fftSize, sr);
+  const fft = getFFT(fftSize);
+  const nFrames = Math.max(1, Math.ceil(mono.length / hop));
+
+  const re = new Float32Array(fftSize);
+  const im = new Float32Array(fftSize);
+  const seg = new Float32Array(fftSize);
+  const E = new Float32Array(NB);
+  const contrib = new Float32Array(NB);
+  const resid = new Float32Array(NB);
+
+  const bank = state.bank;
+  const pitchShift = state.pitchShift;
+  const cosThresh = state.sensitivity;
+  const maxPoly = state.maxPoly;
+
+  const active = [];
+  const events = [];
+  const lowBin = Math.max(1, Math.floor(220 * fftSize / sr));
+  const half = fftSize >> 1;
+
+  await yieldToUI();
+
+  for (let t = 0; t < nFrames; t++){
+    const off = t * hop;
+    let rms = 0;
+    for (let i = 0; i < fftSize; i++){
+      const j = off + i;
+      const v = j < mono.length ? mono[j] : 0;
+      seg[i] = v * win[i];
+      rms += v * v;
+    }
+    rms = Math.sqrt(rms / fftSize);
+
+    for (let i = active.length - 1; i >= 0; i--){
+      const a = active[i];
+      a.gain *= Math.exp(-tickSec / a.tau);
+      if (a.gain < 1e-7) active.splice(i, 1);
+    }
+
+    let notes = null;
+
+    if (rms > 0.0025){
+      re.set(seg);
+      im.fill(0);
+      fft.transform(re, im);
+      computeBands(re, im, binMap, E);
+
+      let sumLog = 0, sum = 0, cnt = 0, lowSum = 0;
+      for (let k = 1; k < half; k++){
+        const p = re[k]*re[k] + im[k]*im[k] + 1e-12;
+        sumLog += Math.log(p); sum += p; cnt++;
+        if (k < lowBin) lowSum += p;
+      }
+      const flat = Math.exp(sumLog / cnt) / (sum / cnt || 1e-12);
+      const noise = clamp((flat - 0.03) / 0.30, 0, 1);
+      const lowRatio = sum > 0 ? lowSum / sum : 0;
+
+      contrib.fill(0);
+      for (let ai = 0; ai < active.length; ai++){
+        const a = active[ai];
+        const B = bank[a.inst].bands;
+        const lag = a.lag;
+        const i0 = Math.max(0, lag), i1 = Math.min(NB, NB + lag);
+        const g = a.gain;
+        for (let i = i0; i < i1; i++) contrib[i] += g * B[i - lag];
+      }
+      for (let i = 0; i < NB; i++) resid[i] = Math.max(0, E[i] - contrib[i]);
+
+      const chosen = [];
+      for (let k = 0; k < maxPoly; k++){
+        let rn = 0;
+        for (let i = 0; i < NB; i++) rn += resid[i] * resid[i];
+        rn = Math.sqrt(rn);
+        if (rn < 1e-9) break;
+
+        let best = null;
+        for (let bi = 0; bi < bank.length; bi++){
+          const B = bank[bi].bands;
+          const w = percWeight(bank[bi].inst, noise, lowRatio);
+          const normSqArr = bank[bi].normSq;
+          for (let lag = -BASE_NOTE; lag <= NOTES - 1 - BASE_NOTE; lag++){
+            const note = lag + BASE_NOTE + pitchShift;
+            if (note < 0 || note >= NOTES) continue;
+            const i0 = Math.max(0, lag), i1 = Math.min(NB, NB + lag);
+            let s = 0;
+            for (let i = i0; i < i1; i++) s += resid[i] * B[i - lag];
+            const cos = s / (rn * Math.sqrt(normSqArr[note]));
+            const score = cos * w;
+            if (!best || score > best.score){
+              best = { score, cos, bi, lag, note, g: s / normSqArr[note] };
+            }
+          }
+        }
+        if (!best || best.cos < cosThresh) break;
+        if (!(best.g > 0)) break;
+
+        const B = bank[best.bi].bands;
+        const lag = best.lag;
+        const i0 = Math.max(0, lag), i1 = Math.min(NB, NB + lag);
+        const g = best.g;
+        for (let i = i0; i < i1; i++) resid[i] = Math.max(0, resid[i] - g * B[i - lag]);
+
+        chosen.push({ inst: best.bi, note: best.note, lag: best.lag, gain: g });
+      }
+
+      if (chosen.length){
+        notes = chosen;
+        events.push({ tick: t, notes: chosen });
+        for (const nt of chosen){
+          const rate = Math.pow(2, (nt.note - BASE_NOTE) / 12);
+          active.push({
+            inst: nt.inst, lag: nt.lag, gain: nt.gain,
+            tau: Math.max(0.03, bank[nt.inst].tau / rate)
+          });
+        }
+      }
+    }
+
+    if ((t & 63) === 0){
+      setProgress(t / nFrames);
+      await yieldToUI();
+    }
+    if (events.length > 60000){
+      log('WARN: event limit reached — truncated.');
+      break;
+    }
+  }
+
+  const allGains = [];
+  for (const ev of events) for (const nt of ev.notes) allGains.push(nt.gain);
+  allGains.sort((a,b) => a - b);
+  const ref = allGains.length ? allGains[Math.min(allGains.length-1, Math.floor(allGains.length*0.92))] : 1;
+  for (const ev of events){
+    for (const nt of ev.notes){
+      const ratio = Math.max(1e-4, nt.gain / (ref || 1));
+      const db = 20 * Math.log10(ratio);
+      nt.vol = clamp(Math.pow(10, db / 40), 0.06, 1.0);
+    }
+  }
+
+  state.events = events;
+  state.totalTicks = Math.max(1, Math.ceil(mono.length / hop));
+  state.playheadTick = 0;
+
+  const totalNotes = events.reduce((a, e) => a + e.notes.length, 0);
+  log('✔ Analysis complete — ' + events.length + ' active ticks, ' + totalNotes +
+      ' notes, ' + state.totalTicks + ' ticks total.');
+
+  setProgress(1);
+  renderTimeline();
+
+  els.btnAnalyze.disabled = false;
+  const has = events.length > 0;
+  els.btnPlay.disabled = !has;
+  els.btnNBS.disabled = !has;
+  els.btnMCF.disabled = !has;
+  els.btnWAV.disabled = !has;
+  els.btnMP3.disabled = !has;
+}
+
+/* ============================================================
+   TIMELINE
+   ============================================================ */
+let staticCanvas = null;
+const TL_H = 260;
+function renderTimeline(){
+  const c = els.timeline;
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.max(200, c.clientWidth || 800);
+  const h = TL_H;
+  c.width = Math.floor(w * dpr);
+  c.height = Math.floor(h * dpr);
+  c.style.height = h + 'px';
+
+  staticCanvas = document.createElement('canvas');
+  staticCanvas.width = c.width;
+  staticCanvas.height = c.height;
+  const g = staticCanvas.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  g.fillStyle = '#0a0d12';
+  g.fillRect(0, 0, w, h);
+  const rowH = h / NOTES;
+
+  for (let n = 0; n < NOTES; n++){
+    const y = h - (n + 1) * rowH;
+    const isOctave = (n % 12) === 0;
+    g.fillStyle = isOctave ? 'rgba(78,201,176,0.045)' : 'rgba(255,255,255,0.012)';
+    g.fillRect(0, y, w, rowH);
+    g.strokeStyle = isOctave ? 'rgba(78,201,176,0.18)' : 'rgba(255,255,255,0.035)';
+    g.lineWidth = 1;
+    g.beginPath();
+    g.moveTo(0, Math.round(y) + 0.5);
+    g.lineTo(w, Math.round(y) + 0.5);
+    g.stroke();
+  }
+  const baseMidi = 54;
+  const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  g.font = '9px ui-monospace, monospace';
+  g.fillStyle = 'rgba(180,200,220,0.35)';
+  g.textBaseline = 'middle';
+  for (let n = 0; n < NOTES; n++){
+    if (n % 12 !== 0 && n !== NOTES - 1) continue;
+    const m = baseMidi + n;
+    const y = h - (n + 0.5) * rowH;
+    g.fillText(names[m % 12] + (Math.floor(m / 12) - 1), 4, y);
+  }
+
+  const total = state.totalTicks || 1;
+  if (state.events && state.events.length){
+    const rectW = Math.max(2, Math.min(8, w / Math.max(1, total) * 1.4));
+    for (const ev of state.events){
+      const x = (ev.tick / total) * w;
+      for (const nt of ev.notes){
+        const y = h - (nt.note + 1) * rowH;
+        g.globalAlpha = 0.35 + 0.65 * (nt.vol || 0.5);
+        g.fillStyle = instrumentColor(nt.inst);
+        g.fillRect(x - rectW * 0.5, y + 0.5, rectW, Math.max(1.5, rowH - 1));
+      }
+    }
+    g.globalAlpha = 1;
+  }
+  paintTimeline(-1);
+}
+function paintTimeline(px){
+  const c = els.timeline;
+  const dpr = window.devicePixelRatio || 1;
+  const g = c.getContext('2d');
+  const w = c.width / dpr, h = c.height / dpr;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, w, h);
+  if (staticCanvas) g.drawImage(staticCanvas, 0, 0, w, h);
+  if (px >= 0){
+    g.strokeStyle = '#ff5a7a';
+    g.lineWidth = 2;
+    g.beginPath();
+    g.moveTo(px, 0);
+    g.lineTo(px, h);
+    g.stroke();
+    g.fillStyle = 'rgba(255,90,122,0.10)';
+    g.fillRect(0, 0, px, h);
+  }
+}
+function buildLegend(){
+  els.legend.innerHTML = '';
+  INSTRUMENTS.forEach((inst, i) => {
+    const s = document.createElement('span');
+    s.innerHTML = '<i style="background:' + instrumentColor(i) + '"></i>' + inst.name;
+    els.legend.appendChild(s);
+  });
+}
+
+/* ============================================================
+   PLAYBACK (with EQ)
+   ============================================================ */
+function ensurePlaybackEQ(){
+  const ctx = getCtx();
+  if (!state.eqBus){
+    const lowCut = ctx.createBiquadFilter();
+    lowCut.type = 'lowshelf';
+    lowCut.frequency.value = 220;
+    const highBoost = ctx.createBiquadFilter();
+    highBoost.type = 'highshelf';
+    highBoost.frequency.value = 3500;
+    lowCut.connect(highBoost);
+    highBoost.connect(ctx.destination);
+    state.eqBus = { input: lowCut, lowCut, highBoost };
+  }
+  state.eqBus.lowCut.gain.value = -state.bassDb;
+  state.eqBus.highBoost.gain.value = state.trebleDb;
+  return state.eqBus;
+}
+function scheduleNote(instIdx, note, vol, when){
+  const ctx = getCtx();
+  const bank = state.bank[instIdx];
+  const src = ctx.createBufferSource();
+  src.buffer = bank.buffer;
+  src.playbackRate.value = Math.pow(2, (note - BASE_NOTE) / 12);
+  const gain = ctx.createGain();
+  gain.gain.value = vol;
+  src.connect(gain);
+  gain.connect(ensurePlaybackEQ().input);
+  src.start(when);
+  state.schedNodes.push(src);
+}
+function startPlayback(fromTick){
+  if (!state.events.length) return;
+  stopPlayback();
+  const ctx = getCtx();
+  if (ctx.state === 'suspended') ctx.resume();
+
+  fromTick = Math.max(0, Math.min(fromTick, state.totalTicks - 1));
+  const tickSec = state.tickMs / 1000;
+  const t0 = ctx.currentTime + 0.12;
+
+  state.schedNodes = [];
+  let count = 0;
+  for (const ev of state.events){
+    if (ev.tick < fromTick) continue;
+    const when = t0 + (ev.tick - fromTick) * tickSec;
+    for (const nt of ev.notes){
+      scheduleNote(nt.inst, nt.note, nt.vol, when);
+      count++;
+    }
+  }
+  state.playing = true;
+  state.playT0 = t0;
+  state.playFromTick = fromTick;
+  els.btnStop.disabled = false;
+  els.btnPlay.disabled = true;
+  log('▶ Playing ' + count + ' notes from tick ' + fromTick + '.');
+
+  const loop = () => {
+    if (!state.playing) return;
+    const now = ctx.currentTime;
+    const elapsed = now - state.playT0;
+    const tick = state.playFromTick + elapsed / tickSec;
+    state.playheadTick = tick;
+    const total = state.totalTicks || 1;
+    if (tick >= total || elapsed > (total - state.playFromTick) * tickSec + 0.5){
+      stopPlayback();
+      paintTimeline(-1);
+      return;
+    }
+    const c = els.timeline;
+    const w = c.clientWidth || 800;
+    paintTimeline((tick / total) * w);
+    state.rafId = requestAnimationFrame(loop);
+  };
+  state.rafId = requestAnimationFrame(loop);
+}
+function stopPlayback(){
+  state.playing = false;
+  if (state.rafId){ cancelAnimationFrame(state.rafId); state.rafId = 0; }
+  for (const n of state.schedNodes){
+    try { n.stop(); } catch (e){}
+    try { n.disconnect(); } catch (e){}
+  }
+  state.schedNodes = [];
+  els.btnStop.disabled = true;
+  els.btnPlay.disabled = state.events.length === 0;
+}
+
+/* ============================================================
+   NBS EXPORT (v4, corrected)
+   ============================================================ */
+function buildNBS(){
+  const bytes = [];
+  const wByte  = v => bytes.push(v & 0xFF);
+  const wShort = v => { v &= 0xFFFF; bytes.push(v & 0xFF, (v >> 8) & 0xFF); };
+  const wInt   = v => { bytes.push(v & 0xFF, (v >> 8) & 0xFF,
+                                  (v >> 16) & 0xFF, (v >>> 24) & 0xFF); };
+  const wString = s => {
+    const b = new TextEncoder().encode(s || '');
+    wInt(b.length);
+    for (let i = 0; i < b.length; i++) bytes.push(b[i]);
+  };
+
+  const events = state.events.slice().sort((a,b) => a.tick - b.tick);
+  const totalTicks = Math.max(1, state.totalTicks);
+  const tps = 1000 / state.tickMs;
+  const tempo = Math.max(1, Math.min(65535, Math.round(tps * 100)));
+
+  let layerCount = 1;
+  for (const ev of events) layerCount = Math.max(layerCount, ev.notes.length);
+  layerCount = Math.max(1, Math.min(layerCount, state.maxPoly));
+
+  let noteCount = 0;
+  for (const ev of events) noteCount += ev.notes.length;
+
+  wShort(0);
+  wByte(4);
+  wByte(16);
+  wShort(totalTicks);
+  wShort(layerCount);
+  wString(state.targetName || 'Transcription');
+  wString('Note Block Transcriber');
+  wString('');
+  wString('Tick ' + state.tickMs + 'ms · poly ' + state.maxPoly + ' · pitch ' + state.pitchShift + 'st');
+  wShort(tempo);
+  wByte(0); wByte(10); wByte(4);
+  wInt(0); wInt(0); wInt(0);
+  wInt(noteCount);
+  wInt(0);
+  wString('');
+
+  let prevTick = -1;
+  for (const ev of events){
+    const tickJump = ev.tick - prevTick;
+    if (tickJump <= 0) continue;
+    wShort(tickJump);
+    prevTick = ev.tick;
+    for (const nt of ev.notes){
+      wShort(1);
+      wByte(nt.inst & 0xFF);
+      wByte((NBS_BASE_KEY + nt.note) & 0xFF);
+      wByte(100);
+      wByte(100);
+      wShort(0);
+    }
+    wShort(0);
+  }
+  wShort(0);
+
+  wShort(layerCount);
+  for (let i = 0; i < layerCount; i++){
+    wString('Layer ' + (i + 1));
+    wByte(0); wByte(100); wByte(100);
+  }
+  wByte(0);
+
+  return new Uint8Array(bytes);
+}
+
+/* ============================================================
+   MCFUNCTION EXPORT
+   ============================================================ */
+function buildMCFunction(){
+  const lines = [];
+  const tps = (1000 / state.tickMs).toFixed(2);
+  lines.push('# ═══════════════════════════════════════════════════════');
+  lines.push('#  Minecraft note block transcription');
+  lines.push('#  Tick delay : ' + state.tickMs + ' ms  (' + tps + ' ticks / second)');
+  lines.push('#  Polyphony  : ' + state.maxPoly);
+  lines.push('#  Pitch shift: ' + state.pitchShift + ' semitones');
+  lines.push('#  Total ticks: ' + state.totalTicks);
+  lines.push('#');
+  lines.push('#  Each "# tick N" group must be executed on game tick N.');
+  lines.push('# ═══════════════════════════════════════════════════════');
+  lines.push('');
+
+  let prevTick = -1;
+  for (const ev of state.events){
+    if (prevTick >= 0 && ev.tick - prevTick > 1){
+      lines.push('# ... wait ' + ((ev.tick - prevTick - 1) * state.tickMs) + ' ms ...');
+      lines.push('');
+    }
+    lines.push('# tick ' + ev.tick + '  (t = ' + (ev.tick * state.tickMs / 1000).toFixed(3) + ' s)');
+    for (const nt of ev.notes){
+      const inst = INSTRUMENTS[nt.inst];
+      const pitch = Math.pow(2, (nt.note - BASE_NOTE) / 12);
+      lines.push('playsound minecraft:' + inst.sound + ' master @a ~ ~ ~ ' +
+                 nt.vol.toFixed(3) + ' ' + pitch.toFixed(5));
+    }
+    lines.push('');
+    prevTick = ev.tick;
+  }
+  return lines.join('\n');
+}
+
+/* ============================================================
+   OFFLINE RENDER + WAV
+   ============================================================ */
+async function renderTranscription(){
+  const sr = getCtx().sampleRate;
+  const tickSec = state.tickMs / 1000;
+  const tail = 3.0;
+  const duration = state.totalTicks * tickSec + tail;
+  const offline = new OfflineAudioContext(2, Math.ceil(sr * duration), sr);
+
+  const master = offline.createGain();
+  master.gain.value = 0.85 / Math.sqrt(Math.max(1, state.maxPoly));
+
+  const lowCut = offline.createBiquadFilter();
+  lowCut.type = 'lowshelf';
+  lowCut.frequency.value = 220;
+  lowCut.gain.value = -state.bassDb;
+
+  const highBoost = offline.createBiquadFilter();
+  highBoost.type = 'highshelf';
+  highBoost.frequency.value = 3500;
+  highBoost.gain.value = state.trebleDb;
+
+  master.connect(lowCut);
+  lowCut.connect(highBoost);
+  highBoost.connect(offline.destination);
+
+  for (const ev of state.events){
+    const when = ev.tick * tickSec;
+    for (const nt of ev.notes){
+      const src = offline.createBufferSource();
+      src.buffer = state.bank[nt.inst].buffer;
+      src.playbackRate.value = Math.pow(2, (nt.note - BASE_NOTE) / 12);
+      const g = offline.createGain();
+      g.gain.value = nt.vol;
+      src.connect(g);
+      g.connect(master);
+      src.start(when);
+    }
+  }
+  return await offline.startRendering();
+}
+
+function encodeWAV(audioBuffer){
+  const nch = Math.min(2, audioBuffer.numberOfChannels);
+  const sr = audioBuffer.sampleRate;
+  const len = audioBuffer.length;
+  const blockAlign = nch * 2;
+  const dataSize = len * blockAlign;
+  const buf = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buf);
+  let p = 0;
+  const wStr = s => { for (let i = 0; i < s.length; i++) view.setUint8(p++, s.charCodeAt(i)); };
+  const wU32 = v => { view.setUint32(p, v >>> 0, true); p += 4; };
+  const wU16 = v => { view.setUint16(p, v & 0xFFFF, true); p += 2; };
+
+  wStr('RIFF'); wU32(36 + dataSize); wStr('WAVE');
+  wStr('fmt '); wU32(16);
+  wU16(1); wU16(nch); wU32(sr);
+  wU32(sr * blockAlign); wU16(blockAlign); wU16(16);
+  wStr('data'); wU32(dataSize);
+
+  const chans = [];
+  for (let c = 0; c < nch; c++) chans.push(audioBuffer.getChannelData(c));
+  for (let i = 0; i < len; i++){
+    for (let c = 0; c < nch; c++){
+      let s = chans[c][i];
+      if (s > 1) s = 1;
+      if (s < -1) s = -1;
+      view.setInt16(p, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      p += 2;
+    }
+  }
+  return new Blob([buf], { type: 'audio/wav' });
+}
+
+async function exportWAV(){
+  if (!state.events.length || !state.bank) return;
+  const btn = els.btnWAV, old = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳ Rendering…';
+  try {
+    const rendered = await renderTranscription();
+    const blob = encodeWAV(rendered);
+    const name = (state.targetName || 'transcription').replace(/[^\w\-]+/g,'_') + '.wav';
+    download(blob, name, 'audio/wav');
+    log('Exported ' + name + ' — ' + (blob.size/1024/1024).toFixed(2) + ' MB, ' +
+        rendered.duration.toFixed(2) + ' s.');
+  } catch (err){
+    log('ERROR exporting WAV: ' + err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = old;
+  }
+}
+
+/* ============================================================
+   MP3 EXPORT
+   ============================================================ */
+let lamePromise = null;
+function loadLame(){
+  if (lamePromise) return lamePromise;
+  lamePromise = new Promise((resolve, reject) => {
+    if (typeof lamejs !== 'undefined') return resolve(lamejs);
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js';
+    s.onload = () => (typeof lamejs !== 'undefined') ? resolve(lamejs)
+                       : reject(new Error('lamejs global missing'));
+    s.onerror = () => reject(new Error('Could not load MP3 encoder'));
+    document.head.appendChild(s);
+  });
+  return lamePromise;
+}
+async function exportMP3(){
+  if (!state.events.length || !state.bank) return;
+  const btn = els.btnMP3, old = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳ Encoding…';
+  try {
+    const lame = await loadLame();
+    const rendered = await renderTranscription();
+    const nch = Math.min(2, rendered.numberOfChannels);
+    const len = rendered.length;
+    const c0 = rendered.getChannelData(0);
+    const c1 = nch > 1 ? rendered.getChannelData(1) : c0;
+    const pcmL = new Int16Array(len);
+    const pcmR = new Int16Array(len);
+    for (let i = 0; i < len; i++){
+      let l = c0[i]; if (l > 1) l = 1; else if (l < -1) l = -1;
+      let r = c1[i]; if (r > 1) r = 1; else if (r < -1) r = -1;
+      pcmL[i] = (l * 32767) | 0;
+      pcmR[i] = (r * 32767) | 0;
+    }
+    const encoder = new lame.Mp3Encoder(nch, rendered.sampleRate, 192);
+    const bs = 1152;
+    const chunks = [];
+    for (let i = 0; i < len; i += bs){
+      const l = pcmL.subarray(i, Math.min(i + bs, len));
+      const r = pcmR.subarray(i, Math.min(i + bs, len));
+      const buf = nch === 2 ? encoder.encodeBuffer(l, r) : encoder.encodeBuffer(l);
+      if (buf.length) chunks.push(new Uint8Array(buf));
+      if ((i & 0x3FFFF) === 0) await yieldToUI();
+    }
+    const fin = encoder.flush();
+    if (fin.length) chunks.push(new Uint8Array(fin));
+    const blob = new Blob(chunks, { type: 'audio/mpeg' });
+    const name = (state.targetName || 'transcription').replace(/[^\w\-]+/g,'_') + '.mp3';
+    download(blob, name, 'audio/mpeg');
+    log('Exported ' + name + ' — ' + (blob.size/1024).toFixed(1) + ' KB.');
+  } catch (err){
+    log('ERROR exporting MP3: ' + err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = old;
+  }
+}
+
+/* ============================================================
+   DOWNLOAD
+   ============================================================ */
+function download(data, filename, mime){
+  const blob = (data instanceof Blob) ? data : new Blob([data], { type: mime || 'application/octet-stream' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
+}
+
+/* ============================================================
+   UI WIRING
+   ============================================================ */
+function syncControls(){
+  state.tickMs      = parseInt(els.tickMs.value, 10);
+  state.maxPoly     = parseInt(els.poly.value, 10);
+  state.pitchShift  = parseInt(els.pitch.value, 10);
+  state.sensitivity = parseFloat(els.sens.value);
+  state.bassDb      = parseInt(els.bassDb.value, 10);
+  state.trebleDb    = parseInt(els.trebleDb.value, 10);
+
+  els.tickOut.textContent  = state.tickMs + ' ms';
+  els.polyOut.textContent  = state.maxPoly;
+  els.pitchOut.textContent = (state.pitchShift > 0 ? '+' : '') + state.pitchShift + ' st';
+  els.sensOut.textContent  = state.sensitivity.toFixed(2);
+  els.bassOut.textContent  = '-' + state.bassDb + ' dB';
+  els.trebleOut.textContent = '+' + state.trebleDb + ' dB';
+
+  if (state.eqBus){
+    state.eqBus.lowCut.gain.value = -state.bassDb;
+    state.eqBus.highBoost.gain.value = state.trebleDb;
+  }
+}
+
+['tickMs','poly','pitch','sens','bassDb','trebleDb'].forEach(id => {
+  els[id].addEventListener('input', syncControls);
+});
+
+wireDrop(els.dropAudio, els.fileAudio, handleAudioFiles);
+wireDrop(els.dropSounds, els.fileSounds, handleSoundFiles);
+
+/* Mode switching */
+els.modeRow.querySelectorAll('label').forEach(lbl => {
+  lbl.addEventListener('click', e => {
+    e.preventDefault();
+    const mode = lbl.dataset.mode;
+    state.soundMode = mode;
+    els.modeRow.querySelectorAll('label').forEach(l => l.classList.toggle('active', l === lbl));
+    els.panelDefault.classList.toggle('active', mode === 'default');
+    els.panelCustom.classList.toggle('active', mode === 'custom');
+    els.panelSynth.classList.toggle('active', mode === 'synthetic');
+    state.bank = null;
+    updateModeBadge();
+    log('Sound source → ' + mode);
+  });
+});
+
+/* Default grid actions */
+els.btnAllDefault.addEventListener('click', () => {
+  state.defaultEnabled = new Set(state.defaultSounds.keys());
+  renderDefaultGrid();
+  state.bank = null;
+});
+els.btnNoneDefault.addEventListener('click', () => {
+  state.defaultEnabled.clear();
+  renderDefaultGrid();
+  state.bank = null;
+});
+els.btnReloadDefault.addEventListener('click', () => {
+  loadDefaultSounds(true);
+});
+
+/* Custom notes loaders */
+els.btnLoadNotes.addEventListener('click', async () => {
+  els.notesStatus.textContent = 'Fetching notes.json…';
+  try {
+    const data = await fetchNotesFile('notes.json');
+    if (!data) throw new Error('empty or unrecognised');
+    const ok = await applyCustomNotes(data);
+    els.notesStatus.textContent = ok ? '✔ notes.json active' : '⚠ no loadable samples';
+  } catch (err){
+    els.notesStatus.textContent = 'No notes.json (or fetch failed)';
+    log('notes.json fetch failed: ' + err.message);
+  }
+});
+els.btnPickNotes.addEventListener('click', () => els.fileNotes.click());
+els.fileNotes.addEventListener('change', async () => {
+  const f = els.fileNotes.files && els.fileNotes.files[0];
+  if (!f) return;
+  try {
+    const txt = await f.text();
+    let data;
+    try { data = JSON.parse(txt); }
+    catch (_){
+      const fn = new Function('window','globalThis',
+        txt + '\n;return window.CUSTOM_NOTES || globalThis.CUSTOM_NOTES;');
+      const shim = {};
+      data = fn(shim, shim) || shim.CUSTOM_NOTES || null;
+    }
+    if (!data) throw new Error('could not parse');
+    const ok = await applyCustomNotes(data);
+    els.notesStatus.textContent = ok ? '✔ uploaded notes active' : '⚠ no loadable samples';
+  } catch (err){
+    els.notesStatus.textContent = '⚠ ' + err.message;
+  }
+  els.fileNotes.value = '';
+});
+
+/* Actions */
+els.btnAnalyze.addEventListener('click', runAnalysis);
+els.btnStop.addEventListener('click', () => { stopPlayback(); paintTimeline(-1); });
+els.btnPlay.addEventListener('click', () => startPlayback(Math.floor(state.playheadTick) || 0));
+
+els.timeline.addEventListener('click', e => {
+  if (!state.totalTicks) return;
+  const rect = els.timeline.getBoundingClientRect();
+  const frac = clamp((e.clientX - rect.left) / rect.width, 0, 1);
+  state.playheadTick = frac * state.totalTicks;
+  paintTimeline(frac * rect.width);
+});
+
+els.btnNBS.addEventListener('click', () => {
+  try {
+    const data = buildNBS();
+    const name = (state.targetName || 'transcription').replace(/[^\w\-]+/g,'_') + '.nbs';
+    download(data, name, 'application/octet-stream');
+    log('Exported ' + name + ' (' + data.length + ' bytes).');
+  } catch (err){ log('ERROR NBS: ' + err.message); }
+});
+els.btnMCF.addEventListener('click', () => {
+  try {
+    const text = buildMCFunction();
+    const name = (state.targetName || 'transcription').replace(/[^\w\-]+/g,'_') + '.mcfunction';
+    download(text, name, 'text/plain');
+    log('Exported ' + name + '.');
+  } catch (err){ log('ERROR mcfunction: ' + err.message); }
+});
+els.btnWAV.addEventListener('click', exportWAV);
+els.btnMP3.addEventListener('click', exportMP3);
+
+window.addEventListener('resize', () => { if (state.totalTicks) renderTimeline(); });
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+(function boot(){
+  syncControls();
+  buildLegend();
+  renderTimeline();
+  renderDefaultGrid();
+  updateModeBadge();
+  log('Note Block Transcriber ready.');
+  log('Default sounds will load from ' + DEFAULT_NOTES_BASE);
+  log('Toggle individual instruments in the Default panel, or switch to Custom to upload your own.');
+  // Kick off default loading (non-blocking)
+  setTimeout(() => loadDefaultSounds(false), 50);
+})();
+</script>
+</body>
+</html>
