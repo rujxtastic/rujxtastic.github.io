@@ -52,6 +52,7 @@
   input[type=range]::-moz-range-thumb{
     width:13px;height:13px;border-radius:50%;background:var(--acc);cursor:pointer;border:2px solid #0b0f14;
   }
+  input[type=checkbox]{ width:16px; height:16px; cursor:pointer }
   .btns{display:flex;flex-wrap:wrap;gap:8px}
   button{
     font-family:inherit;font-size:12px;padding:9px 15px;border-radius:7px;cursor:pointer;
@@ -74,6 +75,48 @@
   }
   .tagline{font-size:10px;color:var(--dim);letter-spacing:.5px}
   .badge{display:inline-block;padding:1px 6px;border-radius:4px;background:#1c2534;color:var(--acc);font-size:10px;margin-left:6px}
+  /* ---- Home button (top-right) ---- */
+  .home-btn{
+    position: fixed; top: 16px; right: 20px;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 7px;
+    background: #1c2534; color: var(--fg);
+    border: 1px solid #2b3547; text-decoration: none;
+    font-size: 12px; letter-spacing: .4px; transition: .13s;
+    z-index: 100;
+  }
+  .home-btn:hover{
+    background:#25324a; border-color:#3d4d68;
+    transform:translateY(-1px); color:var(--acc);
+  }
+  @media(max-width:600px){
+    .home-btn{ top: 12px; right: 12px; padding: 6px 10px; font-size: 11px; }
+  }
+  /* ---- Small note under the title ---- */
+  .subnote{
+    margin: 6px 0 8px; font-size: 11.5px; color: var(--dim); letter-spacing: .3px;
+  }
+  .subnote a{
+    color: var(--acc); text-decoration: none;
+    border-bottom: 1px dotted rgba(78,201,176,.55);
+  }
+  .subnote a:hover{ color: #7fe3cc; border-bottom-color: #7fe3cc; }
+  /* ---- Footer at page bottom ---- */
+  #site-footer{
+    max-width: 1180px; margin: 0 auto; padding: 26px 20px 44px;
+    border-top: 1px solid var(--line); color: var(--dim);
+    font-size: 12px; line-height: 1.7;
+  }
+  #site-footer h2{
+    margin: 0 0 10px; font-size: 12px; letter-spacing: 1.4px;
+    text-transform: uppercase; color: var(--acc); font-weight: 600;
+  }
+  #site-footer p{ margin: 0 0 8px; }
+  #site-footer a{ color: var(--acc); text-decoration: none; }
+  #site-footer a:hover{ text-decoration: underline; }
+  #site-footer .fineprint{
+    margin-top: 14px; font-size: 11px; color: #5a6779;
+  }
 </style>
 </head>
 <body>
@@ -84,7 +127,7 @@
   <p class="subnote">
     A client-side audio → Minecraft note block converter by
     <a href="https://rujxtastic.github.io/">Rujx</a> ·
-    <a href="#site-footer">Deepseek one-shot prompt: click to read more</a>
+    <a href="#site-footer">read more in the footer ↓</a>
   </p>
   <p>Turn any audio file into Minecraft note block events — spectral matching against the 16 note block instruments across 25 pitches (F♯3–F♯5).</p>
 </header>
@@ -129,14 +172,37 @@
   </section>
 
   <section class="card">
+    <h2>3b · Mix &amp; Custom Notes</h2>
+    <div class="controls">
+      <label>Bass cut <output id="bassOut">-15 dB</output>
+        <input type="range" id="bassDb" min="0" max="24" step="1" value="15">
+      </label>
+      <label>Treble boost <output id="trebleOut">+12 dB</output>
+        <input type="range" id="trebleDb" min="0" max="18" step="1" value="12">
+      </label>
+    </div>
+    <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+      <label style="display:inline-flex;flex-direction:row;align-items:center;gap:8px;font-size:11px;color:var(--dim);letter-spacing:.6px;cursor:pointer">
+        <input type="checkbox" id="useCustom" style="accent-color:var(--acc)">
+        Use custom notes bank
+      </label>
+      <button id="btnLoadNotes" style="font-size:11px;padding:6px 12px">📄 Load notes.json from repo</button>
+      <button id="btnPickNotes" style="font-size:11px;padding:6px 12px">📂 Upload notes file…</button>
+      <input type="file" id="fileNotes" accept=".json,.js" hidden>
+      <span id="notesStatus" class="tagline">No custom bank loaded</span>
+    </div>
+  </section>
+
+  <section class="card">
     <h2>4 · Actions</h2>
     <div class="btns">
       <button id="btnAnalyze" class="primary" disabled>⚙ Analyze</button>
       <button id="btnPlay" disabled>▶ Play</button>
       <button id="btnStop" disabled>■ Stop</button>
+      <button id="btnWAV" disabled>⬇ Export .wav <span class="tagline">(fast)</span></button>
+      <button id="btnMP3" disabled>⬇ Export .mp3 <span class="tagline">(slow)</span></button>
       <button id="btnNBS" disabled>⬇ Export .nbs</button>
       <button id="btnMCF" disabled>⬇ Export .mcfunction</button>
-      <button id="btnMP3" disabled>⬇ Export .mp3</button>
     </div>
     <div class="progress"><div id="bar"></div></div>
   </section>
@@ -152,6 +218,30 @@
     <pre id="log"></pre>
   </section>
 </main>
+
+<footer id="site-footer">
+  <h2>About this tool</h2>
+  <p>
+    <strong>Note Block Transcriber</strong> is a fully client-side web app that converts
+    uploaded audio into Minecraft note block events. Nothing leaves your browser — all
+    decoding, FFT analysis, spectral matching, and file export happen locally using the
+    Web Audio API.
+  </p>
+  <p>
+    Built by <a href="https://rujxtastic.github.io/">Rujx</a>.
+    More projects, source code, and contact info at
+    <a href="https://rujxtastic.github.io/">rujxtastic.github.io</a>.
+  </p>
+  <p>
+    Sound bank samples are read from user-supplied <code>.ogg</code> files, or synthesised
+    with Web Audio nodes when none are provided. Exports produce a standard
+    <code>.nbs</code> file for Note Block Studio, a <code>.mcfunction</code> for datapacks,
+    or a rendered <code>.wav</code> / <code>.mp3</code> of the transcription.
+  </p>
+  <p class="fineprint">
+    Not affiliated with Mojang or Microsoft. Minecraft is a trademark of Mojang Synergies AB.
+  </p>
+</footer>
 
 <script>
 "use strict";
@@ -182,14 +272,13 @@ const INSTRUMENTS = [
   {id:15, name:'pling',           sound:'block.note_block.pling',           synth:'pling',      perc:null},
 ];
 
-/* Log-frequency band grid: 12 bands per octave (1 band = 1 semitone) */
 const BPO   = 12;
 const FMIN  = 40;
 const FMAX  = 12000;
-const NB    = Math.round(BPO * Math.log2(FMAX / FMIN)); // ~99
+const NB    = Math.round(BPO * Math.log2(FMAX / FMIN));
 
 /* =========================================================================
-   FFT (iterative radix-2, in-place, real/imag typed arrays)
+   FFT
    ========================================================================= */
 class FFT {
   constructor(n){
@@ -241,7 +330,6 @@ function getFFT(n){
   return f;
 }
 
-/* ---- bin -> band mapping cache ---- */
 const binMapCache = new Map();
 function getBinMap(fftSize, sr){
   const key = fftSize + '@' + sr;
@@ -280,15 +368,15 @@ function computeBands(re, im, binMap, out){
 }
 
 /* =========================================================================
-   GLOBAL STATE
+   STATE
    ========================================================================= */
 const state = {
   audioCtx: null,
   targetBuffer: null,
   targetName: '',
-  loadedSounds: new Map(),   // normalized instrument name -> AudioBuffer
-  bank: null,                // [{inst, buffer, bands, normSq, tau, synthetic}]
-  events: [],                // [{tick, notes:[{inst,note,lag,gain,vol}]}]
+  loadedSounds: new Map(),
+  bank: null,
+  events: [],
   totalTicks: 0,
   tickMs: 100,
   maxPoly: 3,
@@ -300,16 +388,22 @@ const state = {
   playFromTick: 0,
   rafId: 0,
   playheadTick: 0,
+  bassDb: 15,
+  trebleDb: 12,
+  eqBus: null,
+  customData: null,
 };
 
 const els = {};
 ['dropAudio','fileAudio','audioName','dropSounds','fileSounds','soundName','soundMode',
  'tickMs','tickOut','poly','polyOut','pitch','pitchOut','sens','sensOut',
- 'btnAnalyze','btnPlay','btnStop','btnNBS','btnMCF','btnMP3','bar','timeline','legend','log']
+ 'bassDb','bassOut','trebleDb','trebleOut','useCustom','btnLoadNotes','btnPickNotes',
+ 'fileNotes','notesStatus',
+ 'btnAnalyze','btnPlay','btnStop','btnWAV','btnMP3','btnNBS','btnMCF','bar','timeline','legend','log']
  .forEach(id => els[id] = document.getElementById(id));
 
 /* =========================================================================
-   SMALL HELPERS
+   HELPERS
    ========================================================================= */
 function log(msg){
   const el = els.log;
@@ -433,7 +527,6 @@ function makeSynthBuffer(type){
     default: addHarmonics(f0, 0.5, [1,0.4,0.2], 0.004);
   }
 
-  // normalise to 0.85 peak
   let peak = 0;
   for (let i = 0; i < len; i++){ const a = Math.abs(d[i]); if (a > peak) peak = a; }
   if (peak > 1e-6){
@@ -475,7 +568,6 @@ function computeFingerprint(buffer){
   const mono = mixdown(buffer);
   const len = mono.length;
 
-  // locate onset
   let start = 0;
   const th = 0.004;
   const scanLimit = Math.min(len, sr);
@@ -498,14 +590,11 @@ function computeFingerprint(buffer){
   const bands = new Float32Array(NB);
   computeBands(re, im, getBinMap(N, sr), bands);
 
-  // L2-normalise the base-note fingerprint
   let nrm = 0;
   for (let i = 0; i < NB; i++) nrm += bands[i] * bands[i];
   nrm = Math.sqrt(nrm) || 1;
   for (let i = 0; i < NB; i++) bands[i] /= nrm;
 
-  // Pre-compute squared norms of every pitch-shifted variant.
-  // fp_n[i] = bands[i - lag]  where lag = n - BASE_NOTE
   const normSq = new Float32Array(NOTES);
   for (let n = 0; n < NOTES; n++){
     const lag = n - BASE_NOTE;
@@ -525,987 +614,3 @@ function computeFingerprint(buffer){
 function normalizeName(name){
   return name.split('/').pop()
              .replace(/\.ogg$/i, '')
-             .replace(/[^a-z0-9]/gi, '')
-             .toLowerCase();
-}
-
-const INSTRUMENTS_BY_LEN = INSTRUMENTS.slice().sort((a,b) => b.name.length - a.name.length);
-
-function matchInstrument(filename){
-  const base = normalizeName(filename);
-  for (const inst of INSTRUMENTS_BY_LEN){
-    const n = inst.name.replace(/_/g, '');
-    if (base === n) return inst;
-    if (base === 'note' + n) return inst;
-    if (base.endsWith(n) && base.length <= n.length + 8) return inst;
-  }
-  // aliases
-  if (base.includes('bassdrum') || base.includes('kick')) return INSTRUMENTS[4];
-  if (base.includes('click')) return INSTRUMENTS[3];
-  return null;
-}
-
-async function buildBank(){
-  const bank = [];
-  let realCount = 0;
-  for (const inst of INSTRUMENTS){
-    const key = inst.name.replace(/_/g, '');
-    let buffer = state.loadedSounds.get(key) || state.loadedSounds.get(inst.name);
-    let synthetic = false;
-    if (!buffer){
-      buffer = makeSynthBuffer(inst.synth);
-      synthetic = true;
-    } else realCount++;
-    const fp = computeFingerprint(buffer);
-    bank.push({
-      inst, buffer,
-      bands: fp.bands,
-      normSq: fp.normSq,
-      tau: fp.tau,
-      synthetic
-    });
-    await yieldToUI();
-  }
-  log(`Sound bank ready — ${realCount}/16 instruments from uploaded samples, ${16 - realCount} synthesised.`);
-  els.soundMode.textContent = realCount > 0 ? (realCount === 16 ? 'GAME FILES' : realCount + '/16 GAME') : 'SYNTHETIC';
-  els.soundMode.style.color = realCount > 0 ? 'var(--acc)' : 'var(--warn)';
-  return bank;
-}
-
-async function ensureBank(){
-  if (state.bank) return state.bank;
-  log('Building sound bank…');
-  await yieldToUI();
-  state.bank = await buildBank();
-  return state.bank;
-}
-
-/* =========================================================================
-   ZIP READER (deflate-raw via DecompressionStream)
-   ========================================================================= */
-async function readZipEntries(arrayBuffer){
-  const dv = new DataView(arrayBuffer);
-  const u8 = new Uint8Array(arrayBuffer);
-  let eocd = -1;
-  const minPos = Math.max(0, u8.length - 65558);
-  for (let i = u8.length - 22; i >= minPos; i--){
-    if (dv.getUint32(i, true) === 0x06054b50){ eocd = i; break; }
-  }
-  if (eocd < 0) throw new Error('Not a valid ZIP archive');
-  const count = dv.getUint16(eocd + 10, true);
-  const cdOffset = dv.getUint32(eocd + 16, true);
-  const entries = [];
-  let p = cdOffset;
-  const dec = new TextDecoder();
-  for (let i = 0; i < count; i++){
-    if (p + 46 > u8.length) break;
-    if (dv.getUint32(p, true) !== 0x02014b50) break;
-    const method    = dv.getUint16(p + 10, true);
-    const compSize  = dv.getUint32(p + 20, true);
-    const nameLen   = dv.getUint16(p + 28, true);
-    const extraLen  = dv.getUint16(p + 30, true);
-    const cmtLen    = dv.getUint16(p + 32, true);
-    const localOff  = dv.getUint32(p + 42, true);
-    const name = dec.decode(u8.subarray(p + 46, p + 46 + nameLen));
-    entries.push({ name, method, compSize, localOff });
-    p += 46 + nameLen + extraLen + cmtLen;
-  }
-  // resolve data offsets
-  for (const e of entries){
-    const lnameLen  = dv.getUint16(e.localOff + 26, true);
-    const lextraLen = dv.getUint16(e.localOff + 28, true);
-    e.dataStart = e.localOff + 30 + lnameLen + lextraLen;
-  }
-  return { entries, u8 };
-}
-
-async function inflateRaw(bytes){
-  if (typeof DecompressionStream === 'undefined') throw new Error('DecompressionStream unsupported');
-  const ds = new DecompressionStream('deflate-raw');
-  const stream = new Blob([bytes]).stream().pipeThrough(ds);
-  return await new Response(stream).arrayBuffer();
-}
-
-async function extractOggsFromZip(arrayBuffer){
-  const { entries, u8 } = await readZipEntries(arrayBuffer);
-  const out = [];
-  for (const e of entries){
-    if (!/\.ogg$/i.test(e.name)) continue;
-    const chunk = u8.subarray(e.dataStart, e.dataStart + e.compSize);
-    let raw;
-    if (e.method === 0) raw = chunk.slice().buffer;
-    else if (e.method === 8) raw = await inflateRaw(chunk);
-    else continue;
-    out.push({ name: e.name, data: raw });
-  }
-  return out;
-}
-
-/* =========================================================================
-   FILE INPUT / DROP HANDLING
-   ========================================================================= */
-function wireDrop(dropEl, inputEl, handler){
-  dropEl.addEventListener('click', () => inputEl.click());
-  inputEl.addEventListener('change', async () => {
-    if (inputEl.files && inputEl.files.length) await handler(Array.from(inputEl.files));
-    inputEl.value = '';
-  });
-  ['dragenter','dragover'].forEach(ev =>
-    dropEl.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); dropEl.classList.add('over'); }));
-  ['dragleave','drop'].forEach(ev =>
-    dropEl.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); dropEl.classList.remove('over'); }));
-  dropEl.addEventListener('drop', async e => {
-    const files = await filesFromDataTransfer(e.dataTransfer);
-    if (files.length) await handler(files);
-  });
-}
-
-function walkEntry(entry, out){
-  return new Promise(resolve => {
-    if (!entry) return resolve();
-    if (entry.isFile){
-      entry.file(f => { out.push(f); resolve(); }, () => resolve());
-    } else if (entry.isDirectory){
-      const reader = entry.createReader();
-      const all = [];
-      const readBatch = () => {
-        reader.readEntries(async ents => {
-          if (!ents.length){
-            for (const e of all) await walkEntry(e, out);
-            resolve();
-            return;
-          }
-          all.push(...ents);
-          readBatch();
-        }, () => resolve());
-      };
-      readBatch();
-    } else resolve();
-  });
-}
-
-async function filesFromDataTransfer(dt){
-  const items = dt.items;
-  if (items && items.length && items[0].webkitGetAsEntry){
-    const entries = [];
-    for (const it of items){
-      const e = it.webkitGetAsEntry ? it.webkitGetAsEntry() : null;
-      if (e) entries.push(e);
-    }
-    if (entries.length){
-      const out = [];
-      for (const e of entries) await walkEntry(e, out);
-      if (out.length) return out;
-    }
-  }
-  return Array.from(dt.files || []);
-}
-
-/* ---- Target audio ---- */
-async function handleAudioFiles(files){
-  const f = files[0];
-  if (!f) return;
-  els.audioName.textContent = 'Decoding ' + f.name + '…';
-  try {
-    const ab = await f.arrayBuffer();
-    const ctx = getCtx();
-    const buf = await ctx.decodeAudioData(ab);
-    state.targetBuffer = buf;
-    state.targetName = f.name.replace(/\.[^.]+$/, '');
-    els.audioName.innerHTML = '<span class="ok">✔ ' + f.name + '</span><br>' +
-      buf.duration.toFixed(2) + ' s · ' + buf.sampleRate + ' Hz · ' + buf.numberOfChannels + ' ch';
-    els.btnAnalyze.disabled = false;
-    log(`Loaded target "${f.name}" (${buf.duration.toFixed(2)}s, ${buf.sampleRate}Hz).`);
-  } catch (err){
-    els.audioName.textContent = '⚠ Could not decode ' + f.name;
-    log('ERROR decoding target audio: ' + err.message);
-  }
-}
-
-/* ---- Game sounds ---- */
-async function handleSoundFiles(files){
-  els.soundName.textContent = 'Reading ' + files.length + ' file(s)…';
-  const ctx = getCtx();
-  const rawOggs = [];   // {name, data:ArrayBuffer}
-
-  for (const f of files){
-    const name = f.name || '';
-    try {
-      if (/\.zip$/i.test(name)){
-        const ab = await f.arrayBuffer();
-        const oggs = await extractOggsFromZip(ab);
-        log(`ZIP "${name}": found ${oggs.length} .ogg entries.`);
-        rawOggs.push(...oggs);
-      } else if (/\.ogg$/i.test(name) || /audio\/ogg/.test(f.type)){
-        rawOggs.push({ name: f.webkitRelativePath || name, data: await f.arrayBuffer() });
-      }
-    } catch (err){
-      log('WARN: could not read ' + name + ' — ' + err.message);
-    }
-  }
-
-  if (!rawOggs.length){
-    els.soundName.textContent = 'No .ogg files found — keeping synthetic fallback';
-    return;
-  }
-
-  const loaded = new Map();
-  let ok = 0, fail = 0;
-  for (const o of rawOggs){
-    const inst = matchInstrument(o.name);
-    if (!inst) continue;
-    try {
-      const buf = await ctx.decodeAudioData(o.data.slice(0));
-      loaded.set(inst.name.replace(/_/g, ''), buf);
-      ok++;
-    } catch (e){ fail++; }
-    if (ok % 4 === 0) await yieldToUI();
-  }
-
-  if (!loaded.size){
-    els.soundName.textContent = 'Found .ogg files but none decodable / recognised';
-    log('WARN: no decodable instrument samples (browser may not support Ogg Vorbis).');
-    return;
-  }
-
-  state.loadedSounds = loaded;
-  state.bank = null;   // force rebuild
-  const names = [...loaded.keys()].sort().join(', ');
-  els.soundName.innerHTML = '<span class="ok">✔ ' + loaded.size + ' instrument(s) loaded</span><br>' + names;
-  log(`Game sound bank loaded: ${loaded.size} instruments (${fail} failed to decode).`);
-}
-
-/* =========================================================================
-   PERCUSSION WEIGHTING
-   ========================================================================= */
-function percWeight(inst, noise, lowRatio){
-  if (inst.perc === 'noise') return 0.40 + 1.90 * noise;
-  if (inst.perc === 'low')   return 0.40 + 1.90 * (1 - noise) * Math.min(1, lowRatio * 4);
-  return 1.0 - 0.30 * noise;
-}
-
-/* =========================================================================
-   ANALYSIS ENGINE
-   ========================================================================= */
-async function runAnalysis(){
-  if (!state.targetBuffer) return;
-  if (state.playing) stopPlayback();
-
-  els.btnAnalyze.disabled = true;
-  els.btnPlay.disabled = true;
-  els.btnNBS.disabled = true;
-  els.btnMCF.disabled = true;
-  setProgress(0);
-
-  try {
-    await ensureBank();
-  } catch (e){
-    log('ERROR building bank: ' + e.message);
-    els.btnAnalyze.disabled = false;
-    return;
-  }
-
-  const buf = state.targetBuffer;
-  const sr = buf.sampleRate;
-  const tickSec = state.tickMs / 1000;
-  const hop = Math.max(1, Math.round(tickSec * sr));
-  let fftSize = nextPow2(Math.max(hop, 256));
-  fftSize = clamp(fftSize, 256, 16384);
-
-  log(`Analysis: tick=${state.tickMs}ms · hop=${hop} samp · FFT=${fftSize} · poly=${state.maxPoly} · shift=${state.pitchShift}st · sens=${state.sensitivity.toFixed(2)}`);
-
-  const mono = mixdown(buf);
-  const win = new Float32Array(fftSize);
-  for (let i = 0; i < fftSize; i++) win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (fftSize - 1));
-
-  const binMap = getBinMap(fftSize, sr);
-  const fft = getFFT(fftSize);
-  const nFrames = Math.max(1, Math.ceil(mono.length / hop));
-
-  const re = new Float32Array(fftSize);
-  const im = new Float32Array(fftSize);
-  const seg = new Float32Array(fftSize);
-  const E = new Float32Array(NB);
-  const contrib = new Float32Array(NB);
-  const resid = new Float32Array(NB);
-
-  const bank = state.bank;
-  const pitchShift = state.pitchShift;
-  const cosThresh = state.sensitivity;
-  const maxPoly = state.maxPoly;
-
-  const active = [];      // {inst, lag, gain, tau}
-  const events = [];
-  const lowBin = Math.max(1, Math.floor(220 * fftSize / sr));
-  const half = fftSize >> 1;
-
-  await yieldToUI();
-
-  for (let t = 0; t < nFrames; t++){
-    const off = t * hop;
-    let rms = 0;
-    for (let i = 0; i < fftSize; i++){
-      const j = off + i;
-      const v = j < mono.length ? mono[j] : 0;
-      seg[i] = v * win[i];
-      rms += v * v;
-    }
-    rms = Math.sqrt(rms / fftSize);
-
-    /* ---- decay existing voices ---- */
-    for (let i = active.length - 1; i >= 0; i--){
-      const a = active[i];
-      a.gain *= Math.exp(-tickSec / a.tau);
-      if (a.gain < 1e-7) active.splice(i, 1);
-    }
-
-    let notes = null;
-
-    if (rms > 0.0025){
-      re.set(seg);
-      im.fill(0);
-      fft.transform(re, im);
-      computeBands(re, im, binMap, E);
-
-      /* ---- spectral flatness & low-frequency ratio ---- */
-      let sumLog = 0, sum = 0, cnt = 0, lowSum = 0;
-      for (let k = 1; k < half; k++){
-        const p = re[k] * re[k] + im[k] * im[k] + 1e-12;
-        sumLog += Math.log(p);
-        sum += p;
-        cnt++;
-        if (k < lowBin) lowSum += p;
-      }
-      const flat = Math.exp(sumLog / cnt) / (sum / cnt || 1e-12);
-      const noise = clamp((flat - 0.03) / 0.30, 0, 1);
-      const lowRatio = sum > 0 ? lowSum / sum : 0;
-
-      /* ---- subtract decaying tails of previous voices ---- */
-      contrib.fill(0);
-      for (let ai = 0; ai < active.length; ai++){
-        const a = active[ai];
-        const B = bank[a.inst].bands;
-        const lag = a.lag;
-        const i0 = Math.max(0, lag), i1 = Math.min(NB, NB + lag);
-        const g = a.gain;
-        for (let i = i0; i < i1; i++) contrib[i] += g * B[i - lag];
-      }
-      for (let i = 0; i < NB; i++) resid[i] = Math.max(0, E[i] - contrib[i]);
-
-      /* ---- greedy matching pursuit ---- */
-      const chosen = [];
-      for (let k = 0; k < maxPoly; k++){
-        let rn = 0;
-        for (let i = 0; i < NB; i++) rn += resid[i] * resid[i];
-        rn = Math.sqrt(rn);
-        if (rn < 1e-9) break;
-
-        let best = null;
-        for (let bi = 0; bi < bank.length; bi++){
-          const B = bank[bi].bands;
-          const w = percWeight(bank[bi].inst, noise, lowRatio);
-          const normSqArr = bank[bi].normSq;
-          for (let lag = -BASE_NOTE; lag <= NOTES - 1 - BASE_NOTE; lag++){
-            const note = lag + BASE_NOTE + pitchShift;
-            if (note < 0 || note >= NOTES) continue;
-            const i0 = Math.max(0, lag), i1 = Math.min(NB, NB + lag);
-            let s = 0;
-            for (let i = i0; i < i1; i++) s += resid[i] * B[i - lag];
-            const cos = s / (rn * Math.sqrt(normSqArr[note]));
-            const score = cos * w;
-            if (!best || score > best.score){
-              best = { score, cos, bi, lag, note, g: s / normSqArr[note] };
-            }
-          }
-        }
-
-        if (!best || best.cos < cosThresh) break;
-        if (!(best.g > 0)) break;
-
-        const B = bank[best.bi].bands;
-        const lag = best.lag;
-        const i0 = Math.max(0, lag), i1 = Math.min(NB, NB + lag);
-        const g = best.g;
-        for (let i = i0; i < i1; i++) resid[i] = Math.max(0, resid[i] - g * B[i - lag]);
-
-        chosen.push({ inst: best.bi, note: best.note, lag: best.lag, gain: g });
-      }
-
-      if (chosen.length){
-        notes = chosen;
-        events.push({ tick: t, notes: chosen });
-        for (const nt of chosen){
-          const rate = Math.pow(2, (nt.note - BASE_NOTE) / 12);
-          active.push({
-            inst: nt.inst,
-            lag: nt.lag,
-            gain: nt.gain,
-            tau: Math.max(0.03, bank[nt.inst].tau / rate)
-          });
-        }
-      }
-    }
-
-    if ((t & 63) === 0){
-      setProgress(t / nFrames);
-      await yieldToUI();
-    }
-    if (events.length > 60000){
-      log('WARN: event limit reached — analysis truncated.');
-      break;
-    }
-  }
-
-  /* ---- normalise gains to playback volumes (dB mapping) ---- */
-  const allGains = [];
-  for (const ev of events) for (const nt of ev.notes) allGains.push(nt.gain);
-  allGains.sort((a, b) => a - b);
-  const ref = allGains.length ? allGains[Math.min(allGains.length - 1, Math.floor(allGains.length * 0.92))] : 1;
-  for (const ev of events){
-    for (const nt of ev.notes){
-      const ratio = Math.max(1e-4, nt.gain / (ref || 1));
-      const db = 20 * Math.log10(ratio);
-      nt.vol = clamp(Math.pow(10, db / 40), 0.06, 1.0);
-    }
-  }
-
-  state.events = events;
-  state.totalTicks = Math.max(1, Math.ceil(mono.length / hop));
-  state.playheadTick = 0;
-
-  const totalNotes = events.reduce((a, e) => a + e.notes.length, 0);
-  log(`✔ Analysis complete — ${events.length} active ticks, ${totalNotes} note block events, ${state.totalTicks} ticks total.`);
-
-  setProgress(1);
-  renderTimeline();
-
-  els.btnAnalyze.disabled = false;
-  els.btnPlay.disabled = events.length === 0;
-  els.btnNBS.disabled = events.length === 0;
-  els.btnMCF.disabled = events.length === 0;
-  els.btnMP3.disabled = events.length === 0;
-}
-
-/* =========================================================================
-   TIMELINE RENDERING
-   ========================================================================= */
-let staticCanvas = null;
-const TL_H = 260;
-
-function renderTimeline(){
-  const c = els.timeline;
-  const dpr = window.devicePixelRatio || 1;
-  const w = Math.max(200, c.clientWidth || 800);
-  const h = TL_H;
-
-  c.width = Math.floor(w * dpr);
-  c.height = Math.floor(h * dpr);
-  c.style.height = h + 'px';
-
-  staticCanvas = document.createElement('canvas');
-  staticCanvas.width = c.width;
-  staticCanvas.height = c.height;
-  const g = staticCanvas.getContext('2d');
-  g.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-  g.fillStyle = '#0a0d12';
-  g.fillRect(0, 0, w, h);
-
-  const rowH = h / NOTES;
-
-  // pitch grid
-  for (let n = 0; n < NOTES; n++){
-    const y = h - (n + 1) * rowH;
-    const isOctave = (n % 12) === 0;
-    g.fillStyle = isOctave ? 'rgba(78,201,176,0.045)' : 'rgba(255,255,255,0.012)';
-    g.fillRect(0, y, w, rowH);
-    g.strokeStyle = isOctave ? 'rgba(78,201,176,0.18)' : 'rgba(255,255,255,0.035)';
-    g.lineWidth = 1;
-    g.beginPath();
-    g.moveTo(0, Math.round(y) + 0.5);
-    g.lineTo(w, Math.round(y) + 0.5);
-    g.stroke();
-  }
-
-  // note labels
-  const noteNames = [];
-  const baseMidi = 54; // F#3
-  const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-  for (let n = 0; n < NOTES; n++){
-    const m = baseMidi + n;
-    noteNames.push(names[m % 12] + (Math.floor(m / 12) - 1));
-  }
-  g.font = '9px ui-monospace, monospace';
-  g.fillStyle = 'rgba(180,200,220,0.35)';
-  g.textBaseline = 'middle';
-  for (let n = 0; n < NOTES; n++){
-    if (n % 12 !== 0 && n !== NOTES - 1) continue;
-    const y = h - (n + 0.5) * rowH;
-    g.fillText(noteNames[n], 4, y);
-  }
-
-  // events
-  const total = state.totalTicks || 1;
-  if (state.events && state.events.length){
-    const rectW = Math.max(2, Math.min(8, w / Math.max(1, total) * 1.4));
-    for (const ev of state.events){
-      const x = (ev.tick / total) * w;
-      for (const nt of ev.notes){
-        const y = h - (nt.note + 1) * rowH;
-        g.globalAlpha = 0.35 + 0.65 * (nt.vol || 0.5);
-        g.fillStyle = instrumentColor(nt.inst);
-        g.fillRect(x - rectW * 0.5, y + 0.5, rectW, Math.max(1.5, rowH - 1));
-      }
-    }
-    g.globalAlpha = 1;
-  }
-
-  paintTimeline(-1);
-}
-
-function paintTimeline(px){
-  const c = els.timeline;
-  const dpr = window.devicePixelRatio || 1;
-  const g = c.getContext('2d');
-  const w = c.width / dpr, h = c.height / dpr;
-  g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  g.clearRect(0, 0, w, h);
-  if (staticCanvas) g.drawImage(staticCanvas, 0, 0, w, h);
-  if (px >= 0){
-    g.strokeStyle = '#ff5a7a';
-    g.lineWidth = 2;
-    g.beginPath();
-    g.moveTo(px, 0);
-    g.lineTo(px, h);
-    g.stroke();
-    g.fillStyle = 'rgba(255,90,122,0.10)';
-    g.fillRect(0, 0, px, h);
-  }
-}
-
-function buildLegend(){
-  els.legend.innerHTML = '';
-  INSTRUMENTS.forEach((inst, i) => {
-    const s = document.createElement('span');
-    s.innerHTML = `<i style="background:${instrumentColor(i)}"></i>${inst.name}`;
-    els.legend.appendChild(s);
-  });
-}
-
-/* =========================================================================
-   PLAYBACK
-   ========================================================================= */
-function scheduleNote(instIdx, note, vol, when){
-  const ctx = getCtx();
-  const bank = state.bank[instIdx];
-  const src = ctx.createBufferSource();
-  src.buffer = bank.buffer;
-  src.playbackRate.value = Math.pow(2, (note - BASE_NOTE) / 12);
-  const gain = ctx.createGain();
-  gain.gain.value = vol;
-  src.connect(gain);
-  gain.connect(ctx.destination);
-  src.start(when);
-  state.schedNodes.push(src);
-}
-
-function startPlayback(fromTick){
-  if (!state.events.length) return;
-  stopPlayback();
-  const ctx = getCtx();
-  if (ctx.state === 'suspended') ctx.resume();
-
-  fromTick = Math.max(0, Math.min(fromTick, state.totalTicks - 1));
-  const tickSec = state.tickMs / 1000;
-  const t0 = ctx.currentTime + 0.12;
-
-  state.schedNodes = [];
-  let count = 0;
-  for (const ev of state.events){
-    if (ev.tick < fromTick) continue;
-    const when = t0 + (ev.tick - fromTick) * tickSec;
-    for (const nt of ev.notes){
-      scheduleNote(nt.inst, nt.note, nt.vol, when);
-      count++;
-    }
-  }
-
-  state.playing = true;
-  state.playT0 = t0;
-  state.playFromTick = fromTick;
-  els.btnStop.disabled = false;
-  els.btnPlay.disabled = true;
-  log(`▶ Playing ${count} note block events from tick ${fromTick}.`);
-
-  const loop = () => {
-    if (!state.playing) return;
-    const now = ctx.currentTime;
-    const elapsed = now - state.playT0;
-    const tick = state.playFromTick + elapsed / tickSec;
-    state.playheadTick = tick;
-    const total = state.totalTicks || 1;
-    if (tick >= total || elapsed > (total - state.playFromTick) * tickSec + 0.5){
-      stopPlayback();
-      paintTimeline(-1);
-      return;
-    }
-    const c = els.timeline;
-    const w = c.clientWidth || 800;
-    paintTimeline((tick / total) * w);
-    state.rafId = requestAnimationFrame(loop);
-  };
-  state.rafId = requestAnimationFrame(loop);
-}
-
-function stopPlayback(){
-  state.playing = false;
-  if (state.rafId){ cancelAnimationFrame(state.rafId); state.rafId = 0; }
-  for (const n of state.schedNodes){
-    try { n.stop(); } catch (e){}
-    try { n.disconnect(); } catch (e){}
-  }
-  state.schedNodes = [];
-  els.btnStop.disabled = true;
-  els.btnPlay.disabled = state.events.length === 0;
-}
-
-/* =========================================================================
-   EXPORT: NBS (Note Block Studio) v4
-   ========================================================================= */
-function buildNBS(){
-  const bytes = [];
-  const wByte  = v => bytes.push(v & 0xFF);
-  const wShort = v => { v &= 0xFFFF; bytes.push(v & 0xFF, (v >> 8) & 0xFF); };
-  const wInt   = v => { bytes.push(v & 0xFF, (v >> 8) & 0xFF,
-                                  (v >> 16) & 0xFF, (v >>> 24) & 0xFF); };
-  const wString = s => {
-    const b = new TextEncoder().encode(s || '');
-    wInt(b.length);
-    for (let i = 0; i < b.length; i++) bytes.push(b[i]);
-  };
-
-  const events = state.events.slice().sort((a, b) => a.tick - b.tick);
-  const totalTicks = Math.max(1, state.totalTicks);
-  const tps    = 1000 / state.tickMs;
-  const tempo  = Math.max(1, Math.min(65535, Math.round(tps * 100)));
-
-  let layerCount = 1;
-  for (const ev of events) layerCount = Math.max(layerCount, ev.notes.length);
-  layerCount = Math.max(1, Math.min(layerCount, state.maxPoly));
-
-  let noteCount = 0;
-  for (const ev of events) noteCount += ev.notes.length;
-
-  /* ---------------- HEADER ---------------- */
-  wShort(0);                                    // legacy song length (always 0)
-  wByte(4);                                     // NBS version 4
-  wByte(16);                                    // vanilla instrument count
-  wShort(totalTicks);                           // song length in ticks
-  wShort(layerCount);                           // number of layers
-  wString(state.targetName || 'Transcription'); // song name
-  wString('Note Block Transcriber');            // song author
-  wString('');                                  // original author
-  wString(`Tick ${state.tickMs}ms · poly ${state.maxPoly} · pitch ${state.pitchShift}st`);
-  wShort(tempo);                                // tempo (tps × 100)
-  wByte(0);                                     // auto-saving off
-  wByte(10);                                    // auto-save duration
-  wByte(4);                                     // time signature
-  wInt(0);                                      // minutes spent
-  wInt(0);                                      // left clicks
-  wInt(0);                                      // right clicks
-  wInt(noteCount);                              // note blocks added
-  wInt(0);                                      // note blocks removed
-  wString('');                                  // MIDI / schematic file name
-
-  /* ---------------- NOTES ----------------
-     Grouped by tick. Each tick ends with short 0.
-     Whole section ends with another short 0.
-     Note payload after layer-jump: 6 bytes.                        */
-  let prevTick = -1;
-  for (const ev of events){
-    const tickJump = ev.tick - prevTick;
-    if (tickJump <= 0) continue;
-    wShort(tickJump);
-    prevTick = ev.tick;
-
-    for (const nt of ev.notes){
-      wShort(1);                                // layer jump (-1 → 0, 0 → 1, …)
-      wByte(nt.inst & 0xFF);                    // instrument id
-      wByte((NBS_BASE_KEY + nt.note) & 0xFF);   // key (33 = F#3 … 57 = F#5)
-      wByte(100);                               // velocity
-      wByte(100);                               // panning (centre)
-      wShort(0);                                // fine pitch = 0 (no shift) — SHORT
-    }
-    wShort(0);                                  // end of layers in this tick
-  }
-  wShort(0);                                    // end of notes section
-
-  /* ---------------- LAYERS ---------------- */
-  wShort(layerCount);
-  for (let i = 0; i < layerCount; i++){
-    wString('Layer ' + (i + 1));
-    wByte(0);      // not locked
-    wByte(100);    // volume
-    wByte(100);    // stereo panning (centre)
-  }
-
-  /* ---------------- CUSTOM INSTRUMENTS ----------------
-     v4 spec: single BYTE count, not short.                    */
-  wByte(0);
-
-  return new Uint8Array(bytes);
-}
-
-/* =========================================================================
-   EXPORT: .mcfunction
-   ========================================================================= */
-function buildMCFunction(){
-  const lines = [];
-  const tps = (1000 / state.tickMs).toFixed(2);
-  lines.push('# ═══════════════════════════════════════════════════════');
-  lines.push('#  Minecraft note block transcription');
-  lines.push('#  Tick delay : ' + state.tickMs + ' ms  (' + tps + ' ticks / second)');
-  lines.push('#  Polyphony  : ' + state.maxPoly);
-  lines.push('#  Pitch shift: ' + state.pitchShift + ' semitones');
-  lines.push('#  Total ticks: ' + state.totalTicks);
-  lines.push('#');
-  lines.push('#  NOTE: a .mcfunction executes every command in a single game tick.');
-  lines.push('#  Each "# tick N" group below must be executed on game tick N.');
-  lines.push('#  Split the file by group, or drive it with a datapack scheduler.');
-  lines.push('# ═══════════════════════════════════════════════════════');
-  lines.push('');
-
-  let prevTick = -1;
-  for (const ev of state.events){
-    if (prevTick >= 0 && ev.tick - prevTick > 1){
-      lines.push(`# ... wait ${((ev.tick - prevTick - 1) * state.tickMs)} ms ...`);
-      lines.push('');
-    }
-    lines.push(`# tick ${ev.tick}  (t = ${(ev.tick * state.tickMs / 1000).toFixed(3)} s)`);
-    for (const nt of ev.notes){
-      const inst = INSTRUMENTS[nt.inst];
-      const pitch = Math.pow(2, (nt.note - BASE_NOTE) / 12);
-      lines.push(
-        `playsound minecraft:${inst.sound} master @a ~ ~ ~ ` +
-        `${nt.vol.toFixed(3)} ${pitch.toFixed(5)}`
-      );
-    }
-    lines.push('');
-    prevTick = ev.tick;
-  }
-  return lines.join('\n');
-}
-
-/* =========================================================================
-   DOWNLOAD HELPER
-   ========================================================================= */
-function download(data, filename, mime){
-  const blob = (data instanceof Blob) ? data : new Blob([data], { type: mime || 'application/octet-stream' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
-}
-
-/* =========================================================================
-   MP3 EXPORT
-   ========================================================================= */
-let lamePromise = null;
-function loadLame(){
-  if (lamePromise) return lamePromise;
-  lamePromise = new Promise((resolve, reject) => {
-    if (typeof lamejs !== 'undefined') return resolve(lamejs);
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js';
-    s.onload = () => (typeof lamejs !== 'undefined')
-      ? resolve(lamejs)
-      : reject(new Error('lamejs loaded but global not found'));
-    s.onerror = () => reject(new Error('Could not load MP3 encoder (offline?)'));
-    document.head.appendChild(s);
-  });
-  return lamePromise;
-}
-
-async function exportMP3(){
-  if (!state.events.length || !state.bank) return;
-  const btn = els.btnMP3;
-  const oldLabel = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = '⏳ Encoding…';
-
-  try {
-    const lame = await loadLame();
-
-    const sr       = getCtx().sampleRate;
-    const tickSec  = state.tickMs / 1000;
-    const tail     = 2.5;                                     // for the last note's decay
-    const duration = state.totalTicks * tickSec + tail;
-
-    /* --- 1. render the whole transcription offline --- */
-    const offline = new OfflineAudioContext(2, Math.ceil(sr * duration), sr);
-
-    // master bus with a bit of headroom scaled by polyphony
-    const master = offline.createGain();
-    master.gain.value = 0.80 / Math.sqrt(Math.max(1, state.maxPoly));
-    master.connect(offline.destination);
-
-    for (const ev of state.events){
-      const when = ev.tick * tickSec;
-      for (const nt of ev.notes){
-        const src = offline.createBufferSource();
-        src.buffer = state.bank[nt.inst].buffer;
-        src.playbackRate.value = Math.pow(2, (nt.note - BASE_NOTE) / 12);
-        const g = offline.createGain();
-        g.gain.value = nt.vol;
-        src.connect(g);
-        g.connect(master);
-        src.start(when);
-      }
-    }
-
-    const rendered = await offline.startRendering();
-
-    /* --- 2. to interleaved 16-bit PCM --- */
-    const nch = Math.min(2, rendered.numberOfChannels);
-    const len = rendered.length;
-    const ch0 = rendered.getChannelData(0);
-    const ch1 = nch > 1 ? rendered.getChannelData(1) : ch0;
-    const pcmL = new Int16Array(len);
-    const pcmR = new Int16Array(len);
-    for (let i = 0; i < len; i++){
-      let l = ch0[i]; if (l > 1) l = 1; else if (l < -1) l = -1;
-      let r = ch1[i]; if (r > 1) r = 1; else if (r < -1) r = -1;
-      pcmL[i] = (l * 32767) | 0;
-      pcmR[i] = (r * 32767) | 0;
-    }
-
-    /* --- 3. encode --- */
-    const encoder   = new lame.Mp3Encoder(nch, sr, 192);
-    const blockSize = 1152;
-    const chunks    = [];
-    for (let i = 0; i < len; i += blockSize){
-      const l = pcmL.subarray(i, Math.min(i + blockSize, len));
-      const r = pcmR.subarray(i, Math.min(i + blockSize, len));
-      let buf = (nch === 2) ? encoder.encodeBuffer(l, r)
-                            : encoder.encodeBuffer(l);
-      if (buf.length > 0) chunks.push(new Uint8Array(buf));
-      if ((i & 0x3FFFF) === 0) await yieldToUI();          // keep UI responsive
-    }
-    const fin = encoder.flush();
-    if (fin.length > 0) chunks.push(new Uint8Array(fin));
-
-    /* --- 4. download --- */
-    const blob = new Blob(chunks, { type: 'audio/mpeg' });
-    const name = (state.targetName || 'transcription').replace(/[^\w\-]+/g, '_') + '.mp3';
-    download(blob, name, 'audio/mpeg');
-    log(`Exported ${name} — ${(blob.size / 1024).toFixed(1)} KB, ${duration.toFixed(2)} s, 192 kbps stereo.`);
-
-  } catch (err){
-    log('ERROR exporting MP3: ' + err.message);
-    console.error(err);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = oldLabel;
-  }
-}
-
-els.btnMP3.addEventListener('click', exportMP3);
-
-/* =========================================================================
-   UI WIRING
-   ========================================================================= */
-function syncControls(){
-  state.tickMs      = parseInt(els.tickMs.value, 10);
-  state.maxPoly     = parseInt(els.poly.value, 10);
-  state.pitchShift  = parseInt(els.pitch.value, 10);
-  state.sensitivity = parseFloat(els.sens.value);
-
-  els.tickOut.textContent  = state.tickMs + ' ms';
-  els.polyOut.textContent  = state.maxPoly;
-  els.pitchOut.textContent = (state.pitchShift > 0 ? '+' : '') + state.pitchShift + ' st';
-  els.sensOut.textContent  = state.sensitivity.toFixed(2);
-}
-
-els.tickMs.addEventListener('input', syncControls);
-els.poly.addEventListener('input', syncControls);
-els.pitch.addEventListener('input', syncControls);
-els.sens.addEventListener('input', syncControls);
-
-wireDrop(els.dropAudio, els.fileAudio, handleAudioFiles);
-wireDrop(els.dropSounds, els.fileSounds, handleSoundFiles);
-
-els.btnAnalyze.addEventListener('click', runAnalysis);
-els.btnStop.addEventListener('click', () => { stopPlayback(); paintTimeline(-1); });
-els.btnPlay.addEventListener('click', () => startPlayback(Math.floor(state.playheadTick) || 0));
-
-els.timeline.addEventListener('click', e => {
-  if (!state.totalTicks) return;
-  const rect = els.timeline.getBoundingClientRect();
-  const frac = clamp((e.clientX - rect.left) / rect.width, 0, 1);
-  state.playheadTick = frac * state.totalTicks;
-  paintTimeline(frac * rect.width);
-});
-
-els.btnNBS.addEventListener('click', () => {
-  try {
-    const data = buildNBS();
-    const name = (state.targetName || 'transcription').replace(/[^\w\-]+/g, '_') + '.nbs';
-    download(data, name, 'application/octet-stream');
-    log(`Exported ${name} (${data.length} bytes, ${state.totalTicks} ticks).`);
-  } catch (err){
-    log('ERROR exporting NBS: ' + err.message);
-  }
-});
-
-els.btnMCF.addEventListener('click', () => {
-  try {
-    const text = buildMCFunction();
-    const name = (state.targetName || 'transcription').replace(/[^\w\-]+/g, '_') + '.mcfunction';
-    download(text, name, 'text/plain');
-    log(`Exported ${name}.`);
-  } catch (err){
-    log('ERROR exporting mcfunction: ' + err.message);
-  }
-});
-
-window.addEventListener('resize', () => {
-  if (state.totalTicks) renderTimeline();
-});
-
-/* =========================================================================
-   BOOT
-   ========================================================================= */
-(function boot(){
-  syncControls();
-  buildLegend();
-  renderTimeline();
-  log('Note Block Transcriber ready.');
-  log('• Load a target audio file (mp3 / wav / ogg / m4a …).');
-  log('• Optionally drop Minecraft note block .ogg files (or a .zip of them).');
-  log('• Press "Analyze" to run spectral matching.');
-  log('• Play, or export to .nbs / .mcfunction.');
-})();
-</script>
-<footer id="site-footer">
-  <h2>About this tool</h2>
-<p>
-This website was made with a one-shot prompt from Deepseek V4 Pro with Deep Thinking - everything except this footer, the .mp3 downloader and the home button was made with a single prompt, on a free model, in 144 seconds. 
-</p>
-<p>
-I tried asking Claude Sonnet 5.5 Extra, which thought for 45 minutes and burnt all my tokens for the day. I asked Gemini 3.6 Flash and it froze without outputting anything.
-</p>
-<p>
-I don't like to resort to vibecoding, but it would probably be super boring and take a lot longer than 2 minutes to produce, not to mention really really hard. As a full-time university student I have many, many other things I could be spending my time on.
-</p>
-<p>
-The only support you can give is visiting my website and starring on GitHub. I don't want to pretend to be owed money or fame for something that I had essentially no hand in.
-</p>
-<p class="fineprint">
-    Not affiliated with Mojang or Microsoft. Minecraft is a trademark of Mojang Synergies AB.
-  </p>
-</footer>
-</body>
-</html>
