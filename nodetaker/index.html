@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NodeTaker - Node Graph for taking notes</title>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+<style>
+:root{
+  --bg:#0f1115; --panel:#161a21; --card:#1c222c; --line:#2a3240;
+  --text:#e6e9ef; --muted:#8b95a5; --accent:#5b9dff; --danger:#ff5c6c;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px}
+button{font:inherit;color:var(--text);background:#222a35;border:1px solid var(--line);
+  border-radius:8px;padding:6px 10px;cursor:pointer;transition:background .12s,border-color .12s}
+button:hover{background:#2b3542;border-color:#3c4a5e}
+button.danger{color:var(--danger);border-color:#4a2a30}
+button.danger:hover{background:#3a1f24}
+
+#app{display:flex;flex-direction:column;height:100%}
+
+/* ---------- top bar ---------- */
+#bar{height:50px;flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:0 12px;
+  background:var(--panel);border-bottom:1px solid var(--line);z-index:20;overflow-x:auto}
+#bar .brand{font-weight:700;margin-right:10px;white-space:nowrap}
+#bar .chk{display:flex;align-items:center;gap:5px;color:var(--muted);white-space:nowrap;user-select:none}
+.status{margin-left:auto;font-size:12px;color:var(--muted);white-space:nowrap}
+
+/* ---------- main ---------- */
+#main{flex:1;display:flex;min-height:0}
+
+#viewport{flex:1;position:relative;overflow:hidden;cursor:grab;
+  background-color:#0f1115;
+  background-image:radial-gradient(circle at 1px 1px,#1e2530 1px,transparent 0);
+  background-size:24px 24px}
+#viewport.panning{cursor:grabbing}
+
+#world{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+#edges{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none}
+
+/* ---------- nodes ---------- */
+.node{position:absolute;width:300px;background:var(--card);border:1px solid var(--line);
+  border-radius:12px;box-shadow:0 6px 22px rgba(0,0,0,.45);overflow:hidden;
+  transition:border-color .15s,box-shadow .15s}
+.node.selected{border-color:var(--accent);
+  box-shadow:0 0 0 2px rgba(91,157,255,.30),0 10px 30px rgba(0,0,0,.55)}
+.node-head{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:grab;
+  background:rgba(255,255,255,.035);border-bottom:1px solid var(--line);user-select:none}
+.node-head:active{cursor:grabbing}
+.node-head .title{flex:1;font-weight:600;font-size:13.5px;line-height:1.3;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:2px 6px;
+  border-radius:999px;border:1px solid;font-weight:700;white-space:nowrap}
+.toggle{background:transparent;border:none;padding:0 4px;font-size:14px;line-height:1;
+  color:var(--muted);cursor:pointer}
+.toggle:hover{color:var(--text);background:transparent}
+
+.node-body{padding:10px 12px;font-size:13px;line-height:1.55;white-space:pre-wrap;
+  word-wrap:break-word;max-height:260px;overflow:hidden;position:relative}
+.node-body::after{content:"";position:absolute;left:0;right:0;bottom:0;height:28px;
+  background:linear-gradient(transparent,var(--card));pointer-events:none}
+.node.selected .node-body{max-height:none}
+.node.selected .node-body::after{display:none}
+.node-body .katex{font-size:1.02em}
+.node-body .katex-display{margin:.4em 0;overflow-x:auto;overflow-y:hidden}
+
+.nodelink{color:var(--accent);text-decoration:none;border-bottom:1px dotted var(--accent);
+  cursor:pointer}
+.nodelink:hover{background:rgba(91,157,255,.15)}
+
+/* ---------- zoom hud ---------- */
+#zoomhud{position:absolute;right:14px;bottom:14px;display:flex;align-items:center;gap:6px;
+  background:rgba(22,26,33,.92);border:1px solid var(--line);border-radius:10px;padding:5px 7px;
+  backdrop-filter:blur(6px);z-index:5}
+#zoomhud button{padding:3px 9px}
+#zoomhud span{font-size:12px;color:var(--muted);min-width:44px;text-align:center}
+
+/* ---------- side panel ---------- */
+#panel{width:390px;flex:0 0 390px;background:var(--panel);border-left:1px solid var(--line);
+  overflow-y:auto;padding:14px 14px 60px}
+#panel .hint{color:var(--muted);line-height:1.6;font-size:13px}
+#panel .hint code{background:#0d1015;padding:1px 5px;border-radius:4px;color:#9fd0ff;font-size:12px}
+.p-head{display:flex;align-items:baseline;gap:8px;margin-bottom:12px}
+.p-title{font-weight:700}
+.p-id{font-size:11px;color:var(--muted);background:#0d1015;padding:1px 6px;border-radius:4px}
+.lbl{display:block;margin:12px 0 5px;font-size:11.5px;text-transform:uppercase;
+  letter-spacing:.07em;color:var(--muted);font-weight:600}
+.lbl code{text-transform:none;letter-spacing:0;color:#9fd0ff}
+.inp{width:100%;background:#0d1015;border:1px solid var(--line);border-radius:8px;
+  color:var(--text);padding:8px 10px;font:inherit;outline:none}
+.inp:focus{border-color:var(--accent)}
+select.inp{cursor:pointer}
+textarea.inp{min-height:230px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,
+  Consolas,monospace;font-size:12.5px;line-height:1.6;white-space:pre;overflow-wrap:normal;
+  overflow-x:auto}
+.small{padding:5px 8px;font-size:12.5px}
+.row{margin-top:6px}
+.preview{background:#0d1015;border:1px solid var(--line);border-radius:8px;padding:10px 12px;
+  min-height:52px;font-size:13px;line-height:1.55;white-space:pre-wrap;word-wrap:break-word;
+  max-height:320px;overflow:auto}
+.preview .katex{font-size:1.02em}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px;background:#0d1015;border:1px solid var(--line);
+  border-radius:999px;padding:3px 4px 3px 10px;font-size:12px}
+.chip button{background:transparent;border:none;padding:0 5px;font-size:14px;color:var(--muted);
+  line-height:1;cursor:pointer}
+.chip button:hover{color:var(--danger);background:transparent}
+.muted{color:var(--muted);font-size:12px}
+.actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="bar">
+    <span class="brand">📐 NodeTaker</span>
+    <button id="btn-open">📂 Open notes folder</button>
+    <button id="btn-new">＋ New node</button>
+    <button id="btn-arrange">⟲ Auto-arrange</button>
+    <button id="btn-collapse-all">⊟ Collapse all</button>
+    <button id="btn-expand-all">⊞ Expand all</button>
+    <label class="chk"><input type="checkbox" id="chk-bodies" checked> show bodies</label>
+    <span class="status" id="status"></span>
+  </div>
+
+  <div id="main">
+    <div id="viewport">
+      <div id="world"><svg id="edges"></svg></div>
+      <div id="zoomhud">
+        <button id="z-out" title="Zoom out">−</button>
+        <span id="z-val">100%</span>
+        <button id="z-in" title="Zoom in">+</button>
+        <button id="z-fit" title="Fit all">⌂</button>
+      </div>
+    </div>
+    <aside id="panel"></aside>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* =========================================================
+   0.  Small helpers
+   ========================================================= */
+const $  = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+
+const viewport = $('#viewport');
+const world    = $('#world');
+const edgesSvg = $('#edges');
+const panel    = $('#panel');
+const statusEl = $('#status');
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => (
+  {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const uid = () => 'n' + Date.now().toString(36).slice(-5) + Math.random().toString(36).slice(2,6);
+const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+
+const TYPES = ['definition','theorem','lemma','proof','example','note'];
+const TYPE_COLOR = {
+  definition:'#4da3ff', theorem:'#b07dff', lemma:'#4ddb9a',
+  proof:'#ffb84d', example:'#ff7b9c', note:'#8b95a5'
+};
+
+/* =========================================================
+   1.  State
+   ========================================================= */
+const nodes = Object.create(null);   // id -> node
+let selectedId = null;
+let lockedId   = null;               // camera is locked onto this node
+let dirHandle  = null;               // FileSystemDirectoryHandle
+let showBodies = true;
+const cam = { x: 0, y: 0, z: 1 };
+
+function newNode(o){
+  o = o || {};
+  return {
+    id:       o.id || uid(),
+    title:    o.title || 'Untitled',
+    type:     TYPES.indexOf(o.type) >= 0 ? o.type : 'note',
+    parent:   o.parent || null,
+    links:    Array.isArray(o.links) ? o.links.slice() : [],
+    x:        typeof o.x === 'number' ? o.x : 0,
+    y:        typeof o.y === 'number' ? o.y : 0,
+    collapsed: !!o.collapsed,
+    body:     o.body || ''
+  };
+}
+
+function childrenOf(id){
+  const out = [];
+  for (const k in nodes) if (nodes[k].parent === id) out.push(nodes[k]);
+  return out;
+}
+function isDescendant(a, b){            // is `a` a descendant of `b`?
+  let cur = nodes[a];
+  while (cur && cur.parent){
+    if (cur.parent === b) return true;
+    cur = nodes[cur.parent];
+  }
+  return false;
+}
+function visibleNodes(){
+  const out = [];
+  const roots = Object.keys(nodes).map(k => nodes[k])
+                      .filter(n => !n.parent || !nodes[n.parent]);
+  const stack = roots.slice();
+  const seen = new Set();
+  while (stack.length){
+    const n = stack.pop();
+    if (seen.has(n.id)) continue;
+    seen.add(n.id);
+    out.push(n);
+    if (!n.collapsed) for (const c of childrenOf(n.id)) stack.push(c);
+  }
+  return out;
+}
+const nodeEl = id => world.querySelector('.node[data-id="' + id + '"]');
+
+/* =========================================================
+   2.  LaTeX / body formatting
+   ========================================================= */
+function formatBody(text){
+  let html = esc(text);
+  // [[id]]  or  [[id|label]]
+  html = html.replace(/\[\[([^\]\|]+)(?:\|([^\]]+))?\]\]/g, function(m, id, label){
+    id = id.trim();
+    const t = nodes[id];
+    const lbl = (label != null ? label : (t ? t.title : id)).trim();
+    return '<a href="#" class="nodelink" data-target="' + esc(id) + '">' + lbl + '</a>';
+  });
+  return html;
+}
+
+function renderMath(el){
+  if (typeof window.renderMathInElement !== 'function') return;
+  try{
+    window.renderMathInElement(el, {
+      delimiters: [
+        {left:'$$',  right:'$$',  display:true},
+        {left:'\\[', right:'\\]', display:true},
+        {left:'$',   right:'$',   display:false},
+        {left:'\\(', right:'\\)', display:false}
+      ],
+      throwOnError: false,
+      ignoredTags: ['script','noscript','style','textarea','pre','code']
+    });
+  }catch(e){ console.warn('KaTeX:', e); }
+}
+
+/* =========================================================
+   3.  Rendering the graph
+   ========================================================= */
+function buildNodeEl(n){
+  const el = document.createElement('div');
+  el.className = 'node' + (n.id === selectedId ? ' selected' : '');
+  el.dataset.id = n.id;
+  el.style.left = n.x + 'px';
+  el.style.top  = n.y + 'px';
+
+  const c = TYPE_COLOR[n.type] || TYPE_COLOR.note;
+  const kids = childrenOf(n.id);
+
+  const head = document.createElement('div');
+  head.className = 'node-head';
+  head.innerHTML =
+    '<span class="badge" style="color:' + c + ';border-color:' + c + '55;background:' + c + '1a">' +
+      esc(n.type) + '</span>' +
+    '<span class="title"></span>' +
+    (kids.length ? '<button class="toggle" title="Collapse / expand">' +
+                   (n.collapsed ? '▸' : '▾') + '</button>' : '');
+  head.querySelector('.title').textContent = n.title;
+  el.appendChild(head);
+
+  if (showBodies && n.body.trim()){
+    const b = document.createElement('div');
+    b.className = 'node-body';
+    b.innerHTML = formatBody(n.body);
+    el.appendChild(b);
+    renderMath(b);
+  }
+  return el;
+}
+
+function render(){
+  world.querySelectorAll('.node').forEach(el => el.remove());
+  const vis = visibleNodes();
+  for (let i = 0; i < vis.length; i++) world.appendChild(buildNodeEl(vis[i]));
+  requestAnimationFrame(drawEdges);
+  updateZoomHud();
+}
+
+function drawEdges(){
+  const vis = visibleNodes();
+  const c = {};
+  for (const n of vis){
+    const el = nodeEl(n.id);
+    if (!el) continue;
+    c[n.id] = {
+      cx: n.x + el.offsetWidth / 2,
+      cy: n.y + el.offsetHeight / 2,
+      l:  n.x,
+      r:  n.x + el.offsetWidth
+    };
+  }
+
+  let html = '<defs><marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" ' +
+             'markerWidth="6" markerHeight="6" orient="auto-start-reverse">' +
+             '<path d="M0,0 L10,5 L0,10 z" fill="#5b9dff"/></marker></defs>';
+
+  // tree edges
+  for (const n of vis){
+    if (!n.parent || !c[n.parent] || !c[n.id]) continue;
+    const a = c[n.parent], b = c[n.id];
+    const x1 = a.r, y1 = a.cy, x2 = b.l, y2 = b.cy;
+    const mx = (x1 + x2) / 2;
+    html += '<path d="M' + x1 + ' ' + y1 + ' C' + mx + ' ' + y1 + ', ' + mx + ' ' + y2 +
+            ', ' + x2 + ' ' + y2 + '" fill="none" stroke="#3a4557" stroke-width="2"/>';
+  }
+
+  // reference links
+  for (const n of vis){
+    if (!c[n.id]) continue;
+    for (const t of (n.links || [])){
+      if (t === n.id || !c[t]) continue;
+      const a = c[n.id], b = c[t];
+      const mx = (a.cx + b.cx) / 2;
+      const my = (a.cy + b.cy) / 2 - 60;
+      html += '<path d="M' + a.cx + ' ' + a.cy + ' Q' + mx + ' ' + my + ', ' + b.cx + ' ' + b.cy +
+              '" fill="none" stroke="#5b9dff" stroke-width="1.6" stroke-dasharray="7 5" ' +
+              'opacity="0.7" marker-end="url(#arw)"/>';
+    }
+  }
+  edgesSvg.innerHTML = html;
+}
+
+/* =========================================================
+   4.  Camera
+   ========================================================= */
+function applyCamera(animate){
+  world.style.transition = animate
+    ? 'transform .55s cubic-bezier(.22,.61,.36,1)'
+    : 'none';
+  world.style.transform =
+    'translate(' + cam.x + 'px,' + cam.y + 'px) scale(' + cam.z + ')';
+  updateZoomHud();
+}
+function updateZoomHud(){
+  const v = $('#z-val');
+  if (v) v.textContent = Math.round(cam.z * 100) + '%';
+}
+function focusNode(id){
+  const el = nodeEl(id);
+  if (!el) return;
+  const n = nodes[id];
+  const vw = viewport.clientWidth, vh = viewport.clientHeight;
+  const cx = n.x + el.offsetWidth / 2;
+  const cy = n.y + el.offsetHeight / 2;
+  cam.x = vw / 2 - cam.z * cx;
+  cam.y = vh / 2 - cam.z * cy;
+  applyCamera(true);
+}
+function zoomAt(sx, sy, factor){
+  const nz = clamp(cam.z * factor, 0.12, 2.6);
+  const wx = (sx - cam.x) / cam.z;
+  const wy = (sy - cam.y) / cam.z;
+  cam.z = nz;
+  cam.x = sx - nz * wx;
+  cam.y = sy - nz * wy;
+  applyCamera(false);
+}
+function fitView(){
+  const vis = visibleNodes();
+  if (!vis.length){ cam.x = 0; cam.y = 0; cam.z = 1; applyCamera(true); return; }
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const n of vis){
+    const el = nodeEl(n.id);
+    if (!el) continue;
+    minX = Math.min(minX, n.x);
+    minY = Math.min(minY, n.y);
+    maxX = Math.max(maxX, n.x + el.offsetWidth);
+    maxY = Math.max(maxY, n.y + el.offsetHeight);
+  }
+  if (!isFinite(minX)){ cam.x = 0; cam.y = 0; cam.z = 1; applyCamera(true); return; }
+  const vw = viewport.clientWidth, vh = viewport.clientHeight, pad = 90;
+  const z = Math.min(
+    (vw - pad * 2) / Math.max(1, maxX - minX),
+    (vh - pad * 2) / Math.max(1, maxY - minY),
+    1.15
+  );
+  cam.z = clamp(z, 0.12, 1.15);
+  cam.x = vw / 2 - cam.z * (minX + maxX) / 2;
+  cam.y = vh / 2 - cam.z * (minY + maxY) / 2;
+  applyCamera(true);
+}
+
+/* =========================================================
+   5.  Auto-layout (left-to-right tidy tree)
+   ========================================================= */
+function autoArrange(){
+  const GAPY = 34, GAPX = 90;
+  let cursor = 0;
+
+  function w(id){ const e = nodeEl(id); return e ? e.offsetWidth  : 300; }
+  function h(id){ const e = nodeEl(id); return e ? e.offsetHeight : 90; }
+
+  function place(id, depth, x){
+    const n = nodes[id];
+    n.x = x;
+    const kids = n.collapsed ? [] : childrenOf(id);
+    if (!kids.length){
+      n.y = cursor;
+      cursor += h(id) + GAPY;
+    } else {
+      for (const k of kids) place(k.id, depth + 1, x + w(id) + GAPX);
+      const first = nodes[kids[0].id], last = nodes[kids[kids.length - 1].id];
+      const top = first.y;
+      const bot = last.y + h(last.id);
+      n.y = (top + bot) / 2 - h(id) / 2;
+    }
+  }
+
+  const roots = Object.keys(nodes).map(k => nodes[k])
+                      .filter(n => !n.parent || !nodes[n.parent]);
+  for (const r of roots){
+    place(r.id, 0, 0);
+    cursor += 40;
+  }
+  render();
+  for (const k in nodes) scheduleSave(nodes[k]);
+  if (lockedId) requestAnimationFrame(() => focusNode(lockedId));
+}
+
+/* =========================================================
+   6.  File format  (plain .txt, self-describing)
+   ========================================================= */
+const fileName = id => 'node_' + id + '.txt';
+
+function serialize(n){
+  const head = [
+    'id: ' + n.id,
+    'title: ' + String(n.title).replace(/\s*\n\s*/g, ' '),
+    'type: ' + n.type,
+    'parent: ' + (n.parent || ''),
+    'links: ' + (n.links || []).join(', '),
+    'x: ' + Math.round(n.x),
+    'y: ' + Math.round(n.y),
+    'collapsed: ' + (n.collapsed ? 'true' : 'false')
+  ].join('\n');
+  return head + '\n---\n' + n.body + '\n';
+}
+
+function parseNode(text, fname){
+  const lines = text.split(/\r?\n/);
+  let sep = lines.findIndex(l => l.trim() === '---');
+  if (sep === -1) sep = lines.length;
+  const head = lines.slice(0, sep);
+  const body = lines.slice(sep + 1).join('\n').replace(/\s+$/, '');
+
+  const meta = {};
+  for (const line of head){
+    const j = line.indexOf(':');
+    if (j === -1) continue;
+    meta[line.slice(0, j).trim().toLowerCase()] = line.slice(j + 1).trim();
+  }
+  const id = meta.id || fname.replace(/^node_/, '').replace(/\.txt$/i, '');
+  return newNode({
+    id: id,
+    title: meta.title || 'Untitled',
+    type: meta.type,
+    parent: meta.parent || null,
+    links: meta.links ? meta.links.split(',').map(s => s.trim()).filter(Boolean) : [],
+    x: parseFloat(meta.x) || 0,
+    y: parseFloat(meta.y) || 0,
+    collapsed: meta.collapsed === 'true',
+    body: body
+  });
+}
+
+/* ---------- writing ---------- */
+const pendingTimers = new Map();
+
+function scheduleSave(n){
+  if (!dirHandle){ saveLocal(); return; }
+  clearTimeout(pendingTimers.get(n.id));
+  pendingTimers.set(n.id, setTimeout(function(){
+    pendingTimers.delete(n.id);
+    writeNode(n);
+  }, 450));
+}
+
+async function writeNode(n){
+  if (!dirHandle){ saveLocal(); return; }
+  try{
+    const fh = await dirHandle.getFileHandle(fileName(n.id), { create: true });
+    const w  = await fh.createWritable();
+    await w.write(serialize(n));
+    await w.close();
+    flash('saved ✓');
+  }catch(e){
+    console.error(e);
+    flash('save failed', true);
+  }
+}
+async function writeNodeNow(n){ await writeNode(n); }
+
+let flashTimer = null;
+function flash(msg, bad){
+  statusEl.textContent = msg;
+  statusEl.style.color = bad ? 'var(--danger)' : 'var(--muted)';
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(function(){ statusEl.textContent = ''; }, 1400);
+}
+
+/* ---------- localStorage fallback ---------- */
+function saveLocal(){
+  try{
+    localStorage.setItem('mathsnotes.v1',
+      JSON.stringify(Object.keys(nodes).map(k => nodes[k])));
+  }catch(e){ console.warn(e); }
+}
+function loadLocal(){
+  try{
+    const arr = JSON.parse(localStorage.getItem('mathsnotes.v1') || '[]');
+    for (const n of arr) nodes[n.id] = newNode(n);
+  }catch(e){ console.warn(e); }
+}
+
+/* ---------- folder I/O ---------- */
+async function openFolder(){
+  if (!window.showDirectoryPicker){
+    alert('This browser cannot open folders directly (File System Access API missing).\n\n' +
+          'Use Chrome, Edge or Opera on desktop — or just keep working: your notes are ' +
+          'saved in the browser and you can Export them with Ctrl+S.');
+    return;
+  }
+  try{
+    dirHandle = await window.showDirectoryPicker({ mode: 'readwrite', id: 'mathsnotes' });
+  }catch(e){ return; }
+  await loadAll();
+}
+
+async function loadAll(){
+  for (const k in nodes) delete nodes[k];
+  let count = 0;
+  const perm = await dirHandle.queryPermission
+    ? await dirHandle.queryPermission({ mode: 'readwrite' }) : 'granted';
+  if (perm !== 'granted' && dirHandle.requestPermission){
+    await dirHandle.requestPermission({ mode: 'readwrite' });
+  }
+
+  for await (const entry of dirHandle.values()){
+    if (entry.kind !== 'file') continue;
+    if (!/\.txt$/i.test(entry.name)) continue;
+    if (entry.name.charAt(0) === '_') continue;
+    try{
+      const file = await entry.getFile();
+      const text = await file.text();
+      const n = parseNode(text, entry.name);
+      nodes[n.id] = n;
+      count++;
+    }catch(e){ console.warn('skipping', entry.name, e); }
+  }
+
+  if (count === 0){
+    await seedStarterGraph();
+  }
+
+  selectedId = null; lockedId = null;
+  render();
+  renderPanel();
+
+  // if nothing was ever placed, arrange it
+  const anyPlaced = Object.keys(nodes).some(k => nodes[k].x || nodes[k].y);
+  requestAnimationFrame(function(){
+    if (!anyPlaced) autoArrange();
+    fitView();
+  });
+  flash(count + ' node' + (count === 1 ? '' : 's') + ' loaded');
+}
+
+async function seedStarterGraph(){
+  const root = newNode({
+    title: 'Maths notes', type: 'note', x: 0, y: 0,
+    body: 'Welcome!\n\nThis is the root of your notes graph. ' +
+          'Create children with the ＋ Child button, and link any node to any other ' +
+          'with the "Outgoing links" chips.\n\n' +
+          'Write maths with $inline$ and $$display$$ LaTeX. (write LaTeX using $two dollar symbols\$)'
+  });
+  const def = newNode({
+    title: 'Group axioms', type: 'definition', parent: root.id, x: 400, y: -120,
+    body: 'A group $(G,\\cdot)$ is a set $G$ with a binary operation such that:\n' +
+          '1. Associativity: $(ab)c = a(bc)$\n' +
+          '2. Identity: $\\exists e,\\; ae = ea = a$\n' +
+          '3. Inverses: $\\forall a\\;\\exists a^{-1},\\; aa^{-1}=e$'
+  });
+  const lem = newNode({
+    title: 'Cancellation lemma', type: 'lemma', parent: root.id, x: 400, y: 120,
+    body: 'In a group, $ab = ac \\Rightarrow b = c$.'
+  });
+  const prf = newNode({
+    title: 'Proof of cancellation', type: 'proof', parent: lem.id, x: 800, y: 120,
+    body: 'Suppose $ab = ac$. Multiply on the left by $a^{-1}$:\n' +
+          '$$a^{-1}(ab) = a^{-1}(ac)$$\n' +
+          'By associativity, $(a^{-1}a)b = (a^{-1}a)c$, so $eb = ec$, hence $b = c$. $\\blacksquare$'
+  });
+  lem.links.push(prf.id, def.id);
+
+  const all = [root, def, lem, prf];
+  for (const n of all){ nodes[n.id] = n; await writeNode(n); }
+}
+
+/* =========================================================
+   7.  Selection / editing
+   ========================================================= */
+function selectNode(id){
+  selectedId = id;
+  world.querySelectorAll('.node').forEach(function(el){
+    el.classList.toggle('selected', el.dataset.id === id);
+  });
+  renderPanel();
+}
+function selectAndFocus(id){
+  selectNode(id);
+  lockedId = id;
+  if (id) requestAnimationFrame(function(){ focusNode(id); });
+}
+
+function updateNodeEl(n){
+  const el = nodeEl(n.id);
+  if (!el) return;
+  const t = el.querySelector('.title');
+  if (t) t.textContent = n.title;
+  const b = el.querySelector('.node-body');
+  if (b){
+    b.innerHTML = formatBody(n.body);
+    renderMath(b);
+  }
+  drawEdges();
+}
+
+const HINT = '<div class="hint">' +
+  '<p><b>No node selected.</b></p>' +
+  '<p>• Click a node to focus the camera on it and edit it.<br>' +
+  '• Drag a node by its header to move it.<br>' +
+  '• Drag the background to pan, scroll to zoom.<br>' +
+  '• Click ▾ on a node to collapse / expand its subtree.</p>' +
+  '<p><b>Maths:</b> <code>$x^2$</code> inline, <code>$$\\int_0^1 x\\,dx$$</code> display.</p>' +
+  '<p><b>Links:</b> write <code>[[nodeId|label]]</code> inside a note, or use the ' +
+  '"Insert link to…" dropdown. Clicking such a link jumps the camera to that node.</p>' +
+  '<p><b>Files:</b> press <b>Open notes folder</b> and pick a folder — every node ' +
+  'becomes a plain <code>node_*.txt</code> file you can read, back up or sync.</p>' +
+  '</div>';
+
+function renderPanel(){
+  const n = selectedId ? nodes[selectedId] : null;
+
+  if (!n){ panel.innerHTML = HINT; return; }
+
+  const others = Object.keys(nodes).map(k => nodes[k]).filter(o => o.id !== n.id);
+
+  panel.innerHTML =
+    '<div class="p-head"><span class="p-title">Edit node</span>' +
+    '<code class="p-id">' + esc(n.id) + '</code></div>' +
+
+    '<label class="lbl">Title</label>' +
+    '<input id="f-title" class="inp" value="' + esc(n.title) + '">' +
+
+    '<label class="lbl">Type</label>' +
+    '<select id="f-type" class="inp">' +
+      TYPES.map(function(t){
+        return '<option value="' + t + '"' + (t === n.type ? ' selected' : '') + '>' + t + '</option>';
+      }).join('') +
+    '</select>' +
+
+    '<label class="lbl">Body — LaTeX, <code>$…$</code>, <code>$$…$$</code>, links <code>[[id|label]]</code></label>' +
+    '<div class="row"><select id="f-insert" class="inp small">' +
+      '<option value="">Insert link to…</option>' +
+      others.map(function(o){
+        return '<option value="' + o.id + '">' + esc(o.title) + '</option>';
+      }).join('') +
+    '</select></div>' +
+    '<textarea id="f-body" class="inp" spellcheck="false"></textarea>' +
+
+    '<label class="lbl">Preview</label>' +
+    '<div id="f-preview" class="preview"></div>' +
+
+    '<label class="lbl">Outgoing links</label>' +
+    '<div id="f-links" class="chips"></div>' +
+
+    '<label class="lbl">Parent</label>' +
+    '<select id="f-parent" class="inp">' +
+      '<option value="">— none (root) —</option>' +
+      others.filter(function(o){ return !isDescendant(o.id, n.id); }).map(function(o){
+        return '<option value="' + o.id + '"' + (o.id === n.parent ? ' selected' : '') + '>' +
+               esc(o.title) + '</option>';
+      }).join('') +
+    '</select>' +
+
+    '<div class="actions">' +
+      '<button id="btn-child">＋ Child</button>' +
+      '<button id="btn-sibling">＋ Sibling</button>' +
+      '<button id="btn-delete" class="danger">🗑 Delete</button>' +
+    '</div>' +
+    '<div class="actions"><button id="btn-centre">⌖ Centre camera</button></div>';
+
+  const ta = $('#f-body');
+  ta.value = n.body;
+  updatePreview(n);
+  renderLinksChips(n);
+
+  /* ---- events ---- */
+  $('#f-title').addEventListener('input', function(e){
+    n.title = e.target.value;
+    const el = nodeEl(n.id);
+    if (el){ const t = el.querySelector('.title'); if (t) t.textContent = n.title; }
+    scheduleSave(n);
+  });
+
+  $('#f-type').addEventListener('change', function(e){
+    n.type = e.target.value;
+    render();
+    renderPanel();
+    scheduleSave(n);
+  });
+
+  let bodyTimer = null;
+  ta.addEventListener('input', function(){
+    n.body = ta.value;
+    scheduleSave(n);
+    clearTimeout(bodyTimer);
+    bodyTimer = setTimeout(function(){
+      updatePreview(n);
+      updateNodeEl(n);
+    }, 280);
+  });
+
+  $('#f-insert').addEventListener('change', function(e){
+    const id = e.target.value;
+    if (!id) return;
+    const t = nodes[id];
+    const ins = '[[' + id + '|' + (t ? t.title : id) + ']]';
+    const s = ta.selectionStart, en = ta.selectionEnd;
+    ta.value = ta.value.slice(0, s) + ins + ta.value.slice(en);
+    ta.selectionStart = ta.selectionEnd = s + ins.length;
+    ta.focus();
+    n.body = ta.value;
+    updatePreview(n);
+    updateNodeEl(n);
+    scheduleSave(n);
+    e.target.value = '';
+  });
+
+  $('#f-parent').addEventListener('change', function(e){
+    n.parent = e.target.value || null;
+    render();
+    renderPanel();
+    scheduleSave(n);
+  });
+
+  $('#btn-child').addEventListener('click', function(){
+    addNode({ parent: n.id });
+  });
+  $('#btn-sibling').addEventListener('click', function(){
+    addNode({ parent: n.parent });
+  });
+  $('#btn-delete').addEventListener('click', function(){
+    deleteNode(n.id);
+  });
+  $('#btn-centre').addEventListener('click', function(){
+    lockedId = n.id;
+    focusNode(n.id);
+  });
+}
+
+function updatePreview(n){
+  const p = $('#f-preview');
+  if (!p) return;
+  p.innerHTML = formatBody(n.body || '');
+  renderMath(p);
+}
+
+function renderLinksChips(n){
+  const box = $('#f-links');
+  if (!box) return;
+  box.innerHTML = '';
+
+  if (!n.links.length){
+    const s = document.createElement('span');
+    s.className = 'muted';
+    s.textContent = 'none';
+    box.appendChild(s);
+  }
+
+  n.links.forEach(function(id){
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    const label = nodes[id] ? nodes[id].title : '(missing ' + id + ')';
+    chip.innerHTML = '<span>' + esc(label) + '</span><button title="remove">×</button>';
+    chip.querySelector('button').addEventListener('click', function(){
+      n.links = n.links.filter(function(x){ return x !== id; });
+      renderLinksChips(n);
+      drawEdges();
+      scheduleSave(n);
+    });
+    box.appendChild(chip);
+  });
+
+  const sel = document.createElement('select');
+  sel.className = 'inp small';
+  sel.style.maxWidth = '190px';
+  sel.innerHTML = '<option value="">+ add link…</option>' +
+    Object.keys(nodes).map(function(k){ return nodes[k]; })
+      .filter(function(o){ return o.id !== n.id && n.links.indexOf(o.id) === -1; })
+      .map(function(o){ return '<option value="' + o.id + '">' + esc(o.title) + '</option>'; })
+      .join('');
+  sel.addEventListener('change', function(){
+    if (!sel.value) return;
+    n.links.push(sel.value);
+    renderLinksChips(n);
+    drawEdges();
+    scheduleSave(n);
+  });
+  box.appendChild(sel);
+}
+
+/* =========================================================
+   8.  Node operations
+   ========================================================= */
+function addNode(opts){
+  opts = opts || {};
+  const n = newNode(opts);
+  nodes[n.id] = n;
+
+  if (n.parent && nodes[n.parent]){
+    const p = nodes[n.parent];
+    p.collapsed = false;
+    n.x = p.x + 400;
+    n.y = p.y + 150;
+    scheduleSave(p);
+  } else {
+    n.x = 0;
+    n.y = 0;
+  }
+
+  writeNodeNow(n);
+  render();
+  selectAndFocus(n.id);
+}
+
+function deleteNode(id){
+  const n = nodes[id];
+  if (!n) return;
+  if (!confirm('Delete "' + n.title + '"?\n\nIts children will move up to its parent.')) return;
+
+  childrenOf(id).forEach(function(c){
+    c.parent = n.parent;
+    scheduleSave(c);
+  });
+  Object.keys(nodes).forEach(function(k){
+    const o = nodes[k];
+    if (o.links.indexOf(id) !== -1){
+      o.links = o.links.filter(function(x){ return x !== id; });
+      scheduleSave(o);
+    }
+  });
+
+  delete nodes[id];
+  if (dirHandle){ dirHandle.removeEntry(fileName(id)).catch(function(){}); }
+
+  if (selectedId === id) selectedId = null;
+  if (lockedId === id)   lockedId = null;
+  render();
+  renderPanel();
+}
+
+function toggleCollapse(id){
+  const n = nodes[id];
+  if (!n) return;
+  n.collapsed = !n.collapsed;
+  scheduleSave(n);
+  render();
+  if (lockedId) requestAnimationFrame(function(){ focusNode(lockedId); });
+}
+
+/* =========================================================
+   9.  Mouse / touch interaction
+   ========================================================= */
+let drag = null;
+
+viewport.addEventListener('mousedown', function(e){
+  if (e.button !== 0) return;
+
+  const toggle = e.target.closest('.toggle');
+  const linkEl = e.target.closest('.nodelink');
+  const nodeDiv = e.target.closest('.node');
+
+  if (toggle){
+    e.preventDefault(); e.stopPropagation();
+    toggleCollapse(nodeDiv.dataset.id);
+    return;
+  }
+  if (linkEl){
+    e.preventDefault(); e.stopPropagation();
+    selectAndFocus(linkEl.dataset.target);
+    return;
+  }
+  if (nodeDiv){
+    const id = nodeDiv.dataset.id;
+    drag = {
+      type: 'node', id: id,
+      startX: e.clientX, startY: e.clientY,
+      origX: nodes[id].x, origY: nodes[id].y,
+      moved: false
+    };
+    e.preventDefault();
+  } else {
+    drag = {
+      type: 'pan',
+      startX: e.clientX, startY: e.clientY,
+      origX: cam.x, origY: cam.y,
+      moved: false
+    };
+    viewport.classList.add('panning');
+  }
+});
+
+window.addEventListener('mousemove', function(e){
+  if (!drag) return;
+  const dx = e.clientX - drag.startX;
+  const dy = e.clientY - drag.startY;
+  if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
+
+  if (drag.type === 'pan'){
+    cam.x = drag.origX + dx;
+    cam.y = drag.origY + dy;
+    applyCamera(false);
+  } else {
+    const n = nodes[drag.id];
+    if (!n) return;
+    n.x = drag.origX + dx / cam.z;
+    n.y = drag.origY + dy / cam.z;
+    const el = nodeEl(drag.id);
+    if (el){
+      el.style.left = n.x + 'px';
+      el.style.top  = n.y + 'px';
+    }
+    drawEdges();
+  }
+});
+
+window.addEventListener('mouseup', function(){
+  if (!drag) return;
+  const d = drag;
+  drag = null;
+  viewport.classList.remove('panning');
+
+  if (d.type === 'node'){
+    if (!d.moved){
+      selectAndFocus(d.id);
+    } else if (nodes[d.id]){
+      scheduleSave(nodes[d.id]);
+    }
+  } else if (!d.moved){
+    selectNode(null);
+    lockedId = null;
+  }
+});
+
+/* ---- wheel zoom ---- */
+viewport.addEventListener('wheel', function(e){
+  e.preventDefault();
+  const r = viewport.getBoundingClientRect();
+  const factor = Math.exp(-e.deltaY * 0.0016);
+  zoomAt(e.clientX - r.left, e.clientY - r.top, factor);
+}, { passive: false });
+
+/* ---- zoom HUD ---- */
+$('#zoomhud').addEventListener('mousedown', function(e){ e.stopPropagation(); });
+$('#z-in').addEventListener('click', function(){
+  zoomAt(viewport.clientWidth / 2, viewport.clientHeight / 2, 1.22);
+});
+$('#z-out').addEventListener('click', function(){
+  zoomAt(viewport.clientWidth / 2, viewport.clientHeight / 2, 1 / 1.22);
+});
+$('#z-fit').addEventListener('click', fitView);
+
+/* =========================================================
+   10. Toolbar
+   ========================================================= */
+$('#btn-open').addEventListener('click', openFolder);
+
+$('#btn-new').addEventListener('click', function(){
+  const parent = selectedId && nodes[selectedId] ? selectedId : null;
+  addNode({ parent: parent, title: 'New node', type: 'note' });
+});
+
+$('#btn-arrange').addEventListener('click', autoArrange);
+
+$('#btn-collapse-all').addEventListener('click', function(){
+  Object.keys(nodes).forEach(function(k){
+    if (childrenOf(k).length) nodes[k].collapsed = true;
+    scheduleSave(nodes[k]);
+  });
+  render();
+  if (lockedId) requestAnimationFrame(function(){ focusNode(lockedId); });
+});
+
+$('#btn-expand-all').addEventListener('click', function(){
+  Object.keys(nodes).forEach(function(k){
+    nodes[k].collapsed = false;
+    scheduleSave(nodes[k]);
+  });
+  render();
+  if (lockedId) requestAnimationFrame(function(){ focusNode(lockedId); });
+});
+
+$('#chk-bodies').addEventListener('change', function(e){
+  showBodies = e.target.checked;
+  localStorage.setItem('mathsnotes.showBodies', showBodies ? '1' : '0');
+  render();
+  if (lockedId) requestAnimationFrame(function(){ focusNode(lockedId); });
+});
+
+/* ---- keyboard ---- */
+window.addEventListener('keydown', function(e){
+  const inField = /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's'){
+    e.preventDefault();
+    Object.keys(nodes).forEach(function(k){ writeNode(nodes[k]); });
+    flash('saved all ✓');
+    return;
+  }
+  if (inField) return;
+
+  if (e.key === 'f' || e.key === 'F'){ fitView(); }
+  if (e.key === 'a' || e.key === 'A'){ autoArrange(); }
+  if (e.key === 'n' || e.key === 'N'){
+    const parent = selectedId && nodes[selectedId] ? selectedId : null;
+    addNode({ parent: parent, title: 'New node', type: 'note' });
+  }
+});
+
+/* =========================================================
+   11. Boot
+   ========================================================= */
+function boot(){
+  try{
+    const sb = localStorage.getItem('mathsnotes.showBodies');
+    if (sb === '0'){ showBodies = false; $('#chk-bodies').checked = false; }
+  }catch(e){}
+
+  if (!window.showDirectoryPicker){
+    flash('Browser cannot open folders — using local storage (Chrome/Edge recommended)');
+  }
+
+  loadLocal();
+  if (!Object.keys(nodes).length){
+    // brand new user, nothing in local storage: give a starter graph
+    const root = newNode({
+      title: 'My Maths Degree', type: 'note', x: 0, y: 0,
+      body: 'Welcome!\n\nPress **Open notes folder** to choose where your notes live.\n' +
+            'Every node is stored as a plain .txt file.\n\n' +
+            'Maths: $e^{i\\pi} + 1 = 0$, and display:\n$$\\int_0^\\infty e^{-x^2}\\,dx = \\frac{\\sqrt{\\pi}}{2}$$'
+    });
+    nodes[root.id] = root;
+    saveLocal();
+  }
+
+  render();
+  renderPanel();
+  requestAnimationFrame(function(){ fitView(); });
+
+  // re-render maths once KaTeX has finished loading
+  window.addEventListener('load', function(){
+    setTimeout(function(){ render(); if (lockedId) focusNode(lockedId); }, 60);
+  });
+}
+
+boot();
+
+})();
+</script>
+</body>
+</html>
