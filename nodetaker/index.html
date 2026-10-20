@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NodeTaker - Node Graph for taking notes</title>
+<title>Node-Taker</title>
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
@@ -13,45 +13,56 @@
 :root{
   --bg:#0f1115; --panel:#161a21; --card:#1c222c; --line:#2a3240;
   --text:#e6e9ef; --muted:#8b95a5; --accent:#5b9dff; --danger:#ff5c6c;
+  --grid:#1e2530;
+}
+[data-theme="light"]{
+  --bg:#f6f7fb; --panel:#ffffff; --card:#ffffff; --line:#dfe3ea;
+  --text:#1a1f29; --muted:#6b7585; --accent:#2f6fe0; --danger:#d8384a;
+  --grid:#e8ecf2;
+}
+[data-theme="pink"]{
+  --bg:#1a0f17; --panel:#241419; --card:#2c1a21; --line:#4a2b35;
+  --text:#f7e6ee; --muted:#b98ba0; --accent:#ff6fb0; --danger:#ff5c6c;
+  --grid:#2e1a22;
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);
   font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px}
-button{font:inherit;color:var(--text);background:#222a35;border:1px solid var(--line);
+button{font:inherit;color:var(--text);background:var(--card);border:1px solid var(--line);
   border-radius:8px;padding:6px 10px;cursor:pointer;transition:background .12s,border-color .12s}
-button:hover{background:#2b3542;border-color:#3c4a5e}
-button.danger{color:var(--danger);border-color:#4a2a30}
-button.danger:hover{background:#3a1f24}
+button:hover{border-color:var(--accent)}
+button.danger{color:var(--danger);border-color:var(--danger)}
+button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+button.primary:hover{filter:brightness(1.1)}
 
 #app{display:flex;flex-direction:column;height:100%}
 
-/* ---------- top bar ---------- */
 #bar{height:50px;flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:0 12px;
   background:var(--panel);border-bottom:1px solid var(--line);z-index:20;overflow-x:auto}
-#bar .brand{font-weight:700;margin-right:10px;white-space:nowrap}
+#bar .brand{font-weight:700;margin-right:10px;white-space:nowrap;letter-spacing:.02em}
+#bar .brand .dot{color:var(--accent)}
 #bar .chk{display:flex;align-items:center;gap:5px;color:var(--muted);white-space:nowrap;user-select:none}
+#bar .sep{width:1px;height:24px;background:var(--line);flex:0 0 auto}
 .status{margin-left:auto;font-size:12px;color:var(--muted);white-space:nowrap}
 
-/* ---------- main ---------- */
 #main{flex:1;display:flex;min-height:0}
 
 #viewport{flex:1;position:relative;overflow:hidden;cursor:grab;
-  background-color:#0f1115;
-  background-image:radial-gradient(circle at 1px 1px,#1e2530 1px,transparent 0);
+  background-color:var(--bg);
+  background-image:radial-gradient(circle at 1px 1px,var(--grid) 1px,transparent 0);
   background-size:24px 24px}
 #viewport.panning{cursor:grabbing}
 
 #world{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
 #edges{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none}
 
-/* ---------- nodes ---------- */
 .node{position:absolute;width:300px;background:var(--card);border:1px solid var(--line);
-  border-radius:12px;box-shadow:0 6px 22px rgba(0,0,0,.45);overflow:hidden;
+  border-radius:12px;box-shadow:0 6px 22px rgba(0,0,0,.35);overflow:hidden;
   transition:border-color .15s,box-shadow .15s}
 .node.selected{border-color:var(--accent);
-  box-shadow:0 0 0 2px rgba(91,157,255,.30),0 10px 30px rgba(0,0,0,.55)}
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 30%,transparent),0 10px 30px rgba(0,0,0,.45)}
 .node-head{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:grab;
-  background:rgba(255,255,255,.035);border-bottom:1px solid var(--line);user-select:none}
+  background:color-mix(in srgb,var(--text) 4%,transparent);border-bottom:1px solid var(--line);user-select:none}
 .node-head:active{cursor:grabbing}
 .node-head .title{flex:1;font-weight:600;font-size:13.5px;line-height:1.3;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -72,27 +83,25 @@ button.danger:hover{background:#3a1f24}
 
 .nodelink{color:var(--accent);text-decoration:none;border-bottom:1px dotted var(--accent);
   cursor:pointer}
-.nodelink:hover{background:rgba(91,157,255,.15)}
+.nodelink:hover{background:color-mix(in srgb,var(--accent) 15%,transparent)}
 
-/* ---------- zoom hud ---------- */
 #zoomhud{position:absolute;right:14px;bottom:14px;display:flex;align-items:center;gap:6px;
-  background:rgba(22,26,33,.92);border:1px solid var(--line);border-radius:10px;padding:5px 7px;
-  backdrop-filter:blur(6px);z-index:5}
+  background:color-mix(in srgb,var(--panel) 92%,transparent);border:1px solid var(--line);
+  border-radius:10px;padding:5px 7px;backdrop-filter:blur(6px);z-index:5}
 #zoomhud button{padding:3px 9px}
 #zoomhud span{font-size:12px;color:var(--muted);min-width:44px;text-align:center}
 
-/* ---------- side panel ---------- */
-#panel{width:390px;flex:0 0 390px;background:var(--panel);border-left:1px solid var(--line);
+#panel{width:400px;flex:0 0 400px;background:var(--panel);border-left:1px solid var(--line);
   overflow-y:auto;padding:14px 14px 60px}
 #panel .hint{color:var(--muted);line-height:1.6;font-size:13px}
-#panel .hint code{background:#0d1015;padding:1px 5px;border-radius:4px;color:#9fd0ff;font-size:12px}
+#panel .hint code{background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--accent);font-size:12px}
 .p-head{display:flex;align-items:baseline;gap:8px;margin-bottom:12px}
 .p-title{font-weight:700}
-.p-id{font-size:11px;color:var(--muted);background:#0d1015;padding:1px 6px;border-radius:4px}
+.p-id{font-size:11px;color:var(--muted);background:var(--bg);padding:1px 6px;border-radius:4px}
 .lbl{display:block;margin:12px 0 5px;font-size:11.5px;text-transform:uppercase;
   letter-spacing:.07em;color:var(--muted);font-weight:600}
-.lbl code{text-transform:none;letter-spacing:0;color:#9fd0ff}
-.inp{width:100%;background:#0d1015;border:1px solid var(--line);border-radius:8px;
+.lbl code{text-transform:none;letter-spacing:0;color:var(--accent)}
+.inp{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;
   color:var(--text);padding:8px 10px;font:inherit;outline:none}
 .inp:focus{border-color:var(--accent)}
 select.inp{cursor:pointer}
@@ -101,30 +110,61 @@ textarea.inp{min-height:230px;resize:vertical;font-family:ui-monospace,SFMono-Re
   overflow-x:auto}
 .small{padding:5px 8px;font-size:12.5px}
 .row{margin-top:6px}
-.preview{background:#0d1015;border:1px solid var(--line);border-radius:8px;padding:10px 12px;
+.preview{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;
   min-height:52px;font-size:13px;line-height:1.55;white-space:pre-wrap;word-wrap:break-word;
   max-height:320px;overflow:auto}
 .preview .katex{font-size:1.02em}
 .chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.chip{display:inline-flex;align-items:center;gap:6px;background:#0d1015;border:1px solid var(--line);
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--line);
   border-radius:999px;padding:3px 4px 3px 10px;font-size:12px}
 .chip button{background:transparent;border:none;padding:0 5px;font-size:14px;color:var(--muted);
   line-height:1;cursor:pointer}
 .chip button:hover{color:var(--danger);background:transparent}
 .muted{color:var(--muted);font-size:12px}
 .actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.tabs button{background:transparent;border:none;border-bottom:2px solid transparent;
+  border-radius:0;padding:8px 10px;color:var(--muted);font-weight:600;font-size:12.5px}
+.tabs button.active{color:var(--text);border-bottom-color:var(--accent)}
+.calc-row{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+.calc-out{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;
+  font-size:13px;min-height:44px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word;
+  overflow-x:auto}
+.calc-out .katex{font-size:1.05em}
+.latex-box{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;
+  white-space:pre-wrap;word-wrap:break-word;margin-top:6px;color:var(--accent)}
+.shortcut-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}
+.shortcut-grid button{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:12px;padding:6px 4px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  background:var(--accent);color:#fff;padding:8px 18px;border-radius:999px;font-size:13px;
+  opacity:0;pointer-events:none;transition:opacity .2s;z-index:100;font-weight:600}
+.toast.show{opacity:1}
 </style>
 </head>
-<body>
+<body data-theme="dark">
 <div id="app">
   <div id="bar">
-    <span class="brand">📐 NodeTaker</span>
-    <button id="btn-open">📂 Open notes folder</button>
-    <button id="btn-new">＋ New node</button>
-    <button id="btn-arrange">⟲ Auto-arrange</button>
-    <button id="btn-collapse-all">⊟ Collapse all</button>
-    <button id="btn-expand-all">⊞ Expand all</button>
-    <label class="chk"><input type="checkbox" id="chk-bodies" checked> show bodies</label>
+    <span class="brand">🔢 Node<span class="dot">·</span>Taker</span>
+    <button id="btn-open" title="Pick a folder to sync notes to (Chrome/Edge)">📂 Open folder</button>
+    <button id="btn-export" title="Download all notes as a zip">💾 Export ZIP</button>
+    <button id="btn-import" title="Load notes from a zip">📥 Import ZIP</button>
+    <span class="sep"></span>
+    <button id="btn-new">＋ Node</button>
+    <button id="btn-arrange">⟲ Arrange</button>
+    <button id="btn-collapse-all">⊟</button>
+    <button id="btn-expand-all">⊞</button>
+    <span class="sep"></span>
+    <label class="chk" title="Show note bodies on the graph">bodies <input type="checkbox" id="chk-bodies" checked></label>
+    <label class="chk" title="Colour theme">theme
+      <select id="sel-theme" class="inp small" style="width:auto;padding:3px 6px">
+        <option value="dark">dark</option>
+        <option value="light">light</option>
+        <option value="pink">pink</option>
+      </select>
+    </label>
     <span class="status" id="status"></span>
   </div>
 
@@ -141,22 +181,22 @@ textarea.inp{min-height:230px;resize:vertical;font-family:ui-monospace,SFMono-Re
     <aside id="panel"></aside>
   </div>
 </div>
+<div id="toast" class="toast"></div>
 
 <script>
 (function(){
 'use strict';
 
 /* =========================================================
-   0.  Small helpers
+   0.  Constants & helpers
    ========================================================= */
 const $  = s => document.querySelector(s);
-const $$ = s => Array.from(document.querySelectorAll(s));
-
 const viewport = $('#viewport');
 const world    = $('#world');
 const edgesSvg = $('#edges');
 const panel    = $('#panel');
 const statusEl = $('#status');
+const toastEl  = $('#toast');
 
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => (
   {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -171,14 +211,41 @@ const TYPE_COLOR = {
 };
 
 /* =========================================================
+   Theme
+   ========================================================= */
+function setTheme(name){
+  document.body.setAttribute('data-theme', name);
+  try{ localStorage.setItem('nodetaker.theme', name); }catch(e){}
+}
+function loadTheme(){
+  let t = 'dark';
+  try{ t = localStorage.getItem('nodetaker.theme') || 'dark'; }catch(e){}
+  if (!['dark','light','pink'].includes(t)) t = 'dark';
+  setTheme(t);
+  const sel = $('#sel-theme'); if (sel) sel.value = t;
+}
+
+/* =========================================================
+   Toast
+   ========================================================= */
+let toastTimer = null;
+function toast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1600);
+}
+
+/* =========================================================
    1.  State
    ========================================================= */
-const nodes = Object.create(null);   // id -> node
+const nodes = Object.create(null);
 let selectedId = null;
-let lockedId   = null;               // camera is locked onto this node
-let dirHandle  = null;               // FileSystemDirectoryHandle
+let lockedId   = null;
+let dirHandle  = null;
 let showBodies = true;
 const cam = { x: 0, y: 0, z: 1 };
+let activeTab = 'node';
 
 function newNode(o){
   o = o || {};
@@ -200,7 +267,7 @@ function childrenOf(id){
   for (const k in nodes) if (nodes[k].parent === id) out.push(nodes[k]);
   return out;
 }
-function isDescendant(a, b){            // is `a` a descendant of `b`?
+function isDescendant(a, b){
   let cur = nodes[a];
   while (cur && cur.parent){
     if (cur.parent === b) return true;
@@ -226,16 +293,15 @@ function visibleNodes(){
 const nodeEl = id => world.querySelector('.node[data-id="' + id + '"]');
 
 /* =========================================================
-   2.  LaTeX / body formatting
+   2.  Text / LaTeX rendering
    ========================================================= */
 function formatBody(text){
   let html = esc(text);
-  // [[id]]  or  [[id|label]]
   html = html.replace(/\[\[([^\]\|]+)(?:\|([^\]]+))?\]\]/g, function(m, id, label){
     id = id.trim();
     const t = nodes[id];
     const lbl = (label != null ? label : (t ? t.title : id)).trim();
-    return '<a href="#" class="nodelink" data-target="' + esc(id) + '">' + lbl + '</a>';
+    return '<a href="#" class="nodelink" data-target="' + esc(id) + '">' + esc(lbl) + '</a>';
   });
   return html;
 }
@@ -257,7 +323,7 @@ function renderMath(el){
 }
 
 /* =========================================================
-   3.  Rendering the graph
+   3.  Graph rendering
    ========================================================= */
 function buildNodeEl(n){
   const el = document.createElement('div');
@@ -294,7 +360,7 @@ function render(){
   world.querySelectorAll('.node').forEach(el => el.remove());
   const vis = visibleNodes();
   for (let i = 0; i < vis.length; i++) world.appendChild(buildNodeEl(vis[i]));
-  requestAnimationFrame(drawEdges);
+  requestAnimationFrame(() => drawEdges());
   updateZoomHud();
 }
 
@@ -314,19 +380,17 @@ function drawEdges(){
 
   let html = '<defs><marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" ' +
              'markerWidth="6" markerHeight="6" orient="auto-start-reverse">' +
-             '<path d="M0,0 L10,5 L0,10 z" fill="#5b9dff"/></marker></defs>';
+             '<path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker></defs>';
 
-  // tree edges
   for (const n of vis){
     if (!n.parent || !c[n.parent] || !c[n.id]) continue;
     const a = c[n.parent], b = c[n.id];
     const x1 = a.r, y1 = a.cy, x2 = b.l, y2 = b.cy;
     const mx = (x1 + x2) / 2;
     html += '<path d="M' + x1 + ' ' + y1 + ' C' + mx + ' ' + y1 + ', ' + mx + ' ' + y2 +
-            ', ' + x2 + ' ' + y2 + '" fill="none" stroke="#3a4557" stroke-width="2"/>';
+            ', ' + x2 + ' ' + y2 + '" fill="none" stroke="var(--line)" stroke-width="2"/>';
   }
 
-  // reference links
   for (const n of vis){
     if (!c[n.id]) continue;
     for (const t of (n.links || [])){
@@ -335,7 +399,7 @@ function drawEdges(){
       const mx = (a.cx + b.cx) / 2;
       const my = (a.cy + b.cy) / 2 - 60;
       html += '<path d="M' + a.cx + ' ' + a.cy + ' Q' + mx + ' ' + my + ', ' + b.cx + ' ' + b.cy +
-              '" fill="none" stroke="#5b9dff" stroke-width="1.6" stroke-dasharray="7 5" ' +
+              '" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-dasharray="7 5" ' +
               'opacity="0.7" marker-end="url(#arw)"/>';
     }
   }
@@ -403,7 +467,7 @@ function fitView(){
 }
 
 /* =========================================================
-   5.  Auto-layout (left-to-right tidy tree)
+   5.  Auto-layout
    ========================================================= */
 function autoArrange(){
   const GAPY = 34, GAPX = 90;
@@ -440,7 +504,7 @@ function autoArrange(){
 }
 
 /* =========================================================
-   6.  File format  (plain .txt, self-describing)
+   6.  File serialization
    ========================================================= */
 const fileName = id => 'node_' + id + '.txt';
 
@@ -485,7 +549,7 @@ function parseNode(text, fname){
   });
 }
 
-/* ---------- writing ---------- */
+/* ---------- saving ---------- */
 const pendingTimers = new Map();
 
 function scheduleSave(n){
@@ -520,30 +584,30 @@ function flash(msg, bad){
   flashTimer = setTimeout(function(){ statusEl.textContent = ''; }, 1400);
 }
 
-/* ---------- localStorage fallback ---------- */
 function saveLocal(){
   try{
-    localStorage.setItem('mathsnotes.v1',
+    localStorage.setItem('nodetaker.v1',
       JSON.stringify(Object.keys(nodes).map(k => nodes[k])));
   }catch(e){ console.warn(e); }
 }
 function loadLocal(){
   try{
-    const arr = JSON.parse(localStorage.getItem('mathsnotes.v1') || '[]');
+    const arr = JSON.parse(localStorage.getItem('nodetaker.v1') || '[]');
     for (const n of arr) nodes[n.id] = newNode(n);
   }catch(e){ console.warn(e); }
 }
 
-/* ---------- folder I/O ---------- */
+/* =========================================================
+   7.  Folder I/O
+   ========================================================= */
 async function openFolder(){
   if (!window.showDirectoryPicker){
     alert('This browser cannot open folders directly (File System Access API missing).\n\n' +
-          'Use Chrome, Edge or Opera on desktop — or just keep working: your notes are ' +
-          'saved in the browser and you can Export them with Ctrl+S.');
+          'Use Chrome, Edge or Opera on desktop — or keep using Export ZIP / Import ZIP.');
     return;
   }
   try{
-    dirHandle = await window.showDirectoryPicker({ mode: 'readwrite', id: 'mathsnotes' });
+    dirHandle = await window.showDirectoryPicker({ mode: 'readwrite', id: 'nodetaker' });
   }catch(e){ return; }
   await loadAll();
 }
@@ -578,7 +642,6 @@ async function loadAll(){
   render();
   renderPanel();
 
-  // if nothing was ever placed, arrange it
   const anyPlaced = Object.keys(nodes).some(k => nodes[k].x || nodes[k].y);
   requestAnimationFrame(function(){
     if (!anyPlaced) autoArrange();
@@ -587,87 +650,562 @@ async function loadAll(){
   flash(count + ' node' + (count === 1 ? '' : 's') + ' loaded');
 }
 
+/* =========================================================
+   8.  ZIP export / import
+   ========================================================= */
+function crc32(bytes){
+  let c, table = crc32.table;
+  if (!table){
+    table = crc32.table = new Uint32Array(256);
+    for (let n = 0; n < 256; n++){
+      c = n;
+      for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      table[n] = c >>> 0;
+    }
+  }
+  let crc = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) crc = (crc >>> 8) ^ table[(crc ^ bytes[i]) & 0xFF];
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+function makeZip(files){
+  const enc = new TextEncoder();
+  const chunks = [];
+  const central = [];
+  let offset = 0;
+
+  for (const f of files){
+    const nameBytes = enc.encode(f.name);
+    const data = f.data;
+    const crc = crc32(data);
+    const size = data.length;
+
+    const lh = new Uint8Array(30 + nameBytes.length);
+    const dv = new DataView(lh.buffer);
+    dv.setUint32(0, 0x04034b50, true);
+    dv.setUint16(4, 20, true);
+    dv.setUint16(6, 0, true);
+    dv.setUint16(8, 0, true);
+    dv.setUint16(10, 0, true);
+    dv.setUint16(12, 0, true);
+    dv.setUint32(14, crc, true);
+    dv.setUint32(18, size, true);
+    dv.setUint32(22, size, true);
+    dv.setUint16(26, nameBytes.length, true);
+    dv.setUint16(28, 0, true);
+    lh.set(nameBytes, 30);
+
+    chunks.push(lh);
+    chunks.push(data);
+
+    const cd = new Uint8Array(46 + nameBytes.length);
+    const cv = new DataView(cd.buffer);
+    cv.setUint32(0, 0x02014b50, true);
+    cv.setUint16(4, 20, true);
+    cv.setUint16(6, 20, true);
+    cv.setUint16(8, 0, true);
+    cv.setUint16(10, 0, true);
+    cv.setUint16(12, 0, true);
+    cv.setUint16(14, 0, true);
+    cv.setUint32(16, crc, true);
+    cv.setUint32(20, size, true);
+    cv.setUint32(24, size, true);
+    cv.setUint16(28, nameBytes.length, true);
+    cv.setUint16(30, 0, true);
+    cv.setUint16(32, 0, true);
+    cv.setUint16(34, 0, true);
+    cv.setUint16(36, 0, true);
+    cv.setUint32(38, 0, true);
+    cv.setUint32(42, offset, true);
+    cd.set(nameBytes, 46);
+    central.push(cd);
+
+    offset += lh.length + size;
+  }
+
+  const centralStart = offset;
+  let centralSize = 0;
+  for (const c of central){ chunks.push(c); centralSize += c.length; }
+
+  const eocd = new Uint8Array(22);
+  const ev = new DataView(eocd.buffer);
+  ev.setUint32(0, 0x06054b50, true);
+  ev.setUint16(4, 0, true);
+  ev.setUint16(6, 0, true);
+  ev.setUint16(8, files.length, true);
+  ev.setUint16(10, files.length, true);
+  ev.setUint32(12, centralSize, true);
+  ev.setUint32(16, centralStart, true);
+  ev.setUint16(20, 0, true);
+  chunks.push(eocd);
+
+  return new Blob(chunks, { type: 'application/zip' });
+}
+
+function exportZip(){
+  const enc = new TextEncoder();
+  const files = [];
+  for (const k in nodes){
+    const n = nodes[k];
+    files.push({ name: fileName(n.id), data: enc.encode(serialize(n)) });
+  }
+  if (!files.length){ flash('nothing to export', true); return; }
+
+  const readme =
+    'Node-Taker export\n' +
+    '=================\n\n' +
+    'This zip contains one .txt file per node.\n' +
+    'To restore: open the app, click "Import ZIP", and select this file.\n' +
+    'Node IDs are stable, so links between notes will be preserved.\n';
+  files.unshift({ name: 'README.txt', data: enc.encode(readme) });
+
+  const blob = makeZip(files);
+  const stamp = new Date().toISOString().slice(0, 10);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'node-taker-' + stamp + '.zip';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){
+    URL.revokeObjectURL(a.href);
+    a.remove();
+  }, 1000);
+  flash('exported ' + (files.length - 1) + ' nodes → zip ✓');
+}
+
+async function readZip(file){
+  const buf = new Uint8Array(await file.arrayBuffer());
+  const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+
+  let eocd = -1;
+  for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65557); i--){
+    if (dv.getUint32(i, true) === 0x06054b50){ eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('Not a ZIP file (no end-of-central-directory)');
+
+  const total = dv.getUint16(eocd + 10, true);
+  const cdSize = dv.getUint32(eocd + 12, true);
+  const cdStart = dv.getUint32(eocd + 16, true);
+  if (cdSize === 0 && total > 0) throw new Error('ZIP64 not supported');
+
+  const out = [];
+  let p = cdStart;
+  for (let i = 0; i < total; i++){
+    if (dv.getUint32(p, true) !== 0x02014b50) throw new Error('Bad central directory');
+    const method   = dv.getUint16(p + 10, true);
+    const crc      = dv.getUint32(p + 16, true);
+    const compSize = dv.getUint32(p + 20, true);
+    const uncompSize = dv.getUint32(p + 24, true);
+    const nameLen  = dv.getUint16(p + 28, true);
+    const extraLen = dv.getUint16(p + 30, true);
+    const commentLen = dv.getUint16(p + 32, true);
+    const localOff = dv.getUint32(p + 42, true);
+    const name = new TextDecoder().decode(buf.subarray(p + 46, p + 46 + nameLen));
+    p += 46 + nameLen + extraLen + commentLen;
+
+    if (name.endsWith('/')) continue;
+
+    if (dv.getUint32(localOff, true) !== 0x04034b50) throw new Error('Bad local header');
+    const lNameLen  = dv.getUint16(localOff + 26, true);
+    const lExtraLen = dv.getUint16(localOff + 28, true);
+    const dataStart = localOff + 30 + lNameLen + lExtraLen;
+    let comp = buf.subarray(dataStart, dataStart + compSize);
+
+    let data;
+    if (method === 0){
+      data = comp;
+    } else if (method === 8){
+      if (typeof DecompressionStream !== 'function') throw new Error('DecompressionStream unsupported');
+      const ds = new DecompressionStream('deflate-raw');
+      const stream = new Blob([comp]).stream().pipeThrough(ds);
+      data = new Uint8Array(await new Response(stream).arrayBuffer());
+    } else {
+      throw new Error('Unsupported compression method ' + method);
+    }
+
+    if (data.length !== uncompSize) throw new Error('Size mismatch for ' + name);
+    if (crc32(data) !== crc) throw new Error('CRC mismatch for ' + name);
+
+    out.push({ name: name, data: data });
+  }
+  return out;
+}
+
+async function importZip(file){
+  let entries;
+  try{
+    entries = await readZip(file);
+  }catch(e){
+    console.error(e);
+    flash('import failed: ' + e.message, true);
+    return;
+  }
+
+  const parsed = [];
+  for (const e of entries){
+    if (!/\.txt$/i.test(e.name)) continue;
+    if (e.name === 'README.txt') continue;
+    try{
+      const text = new TextDecoder().decode(e.data);
+      const n = parseNode(text, e.name);
+      parsed.push(n);
+    }catch(err){ console.warn('bad entry', e.name, err); }
+  }
+
+  if (!parsed.length){
+    flash('no nodes found in zip', true);
+    return;
+  }
+
+  if (Object.keys(nodes).length){
+    if (!confirm('Import ' + parsed.length + ' node(s)?\n\nThis will replace your current notes graph.')) return;
+  }
+
+  for (const k in nodes) delete nodes[k];
+  for (const n of parsed) nodes[n.id] = n;
+
+  if (dirHandle){
+    for (const n of parsed) await writeNode(n);
+  } else {
+    saveLocal();
+  }
+
+  selectedId = null; lockedId = null;
+  render();
+  renderPanel();
+  requestAnimationFrame(fitView);
+  flash('imported ' + parsed.length + ' node(s) ✓');
+}
+
+/* =========================================================
+   9.  Starter graph
+   ========================================================= */
 async function seedStarterGraph(){
   const root = newNode({
-    title: 'Maths notes', type: 'note', x: 0, y: 0,
-    body: 'Welcome!\n\nThis is the root of your notes graph. ' +
-          'Create children with the ＋ Child button, and link any node to any other ' +
-          'with the "Outgoing links" chips.\n\n' +
-          'Write maths with $inline$ and $$display$$ LaTeX. (write LaTeX using $two dollar symbols\$)'
+    title: 'Welcome to Node-Taker', type: 'note', x: 0, y: 0,
+    body:
+      'Node-Taker is a node graph for maths notes.\n\n' +
+      'HOW TO WRITE LATEX\n' +
+      '------------------\n' +
+      'Inline maths:  $a^2 + b^2 = c^2$\n' +
+      'Display maths:  $$\\int_0^1 x\\,dx = \\tfrac12$$\n' +
+      'Alternative:  \\( \\frac{a}{b} \\)  and  \\[ \\sum_{n=1}^{\\infty} \\frac{1}{n^2} \\]\n\n' +
+      'Click any node to focus it. Drag its header to move it.\n' +
+      'Use the panel on the right to edit, link, and add children.'
   });
-  const def = newNode({
-    title: 'Group axioms', type: 'definition', parent: root.id, x: 400, y: -120,
-    body: 'A group $(G,\\cdot)$ is a set $G$ with a binary operation such that:\n' +
-          '1. Associativity: $(ab)c = a(bc)$\n' +
-          '2. Identity: $\\exists e,\\; ae = ea = a$\n' +
-          '3. Inverses: $\\forall a\\;\\exists a^{-1},\\; aa^{-1}=e$'
+  const latexGuide = newNode({
+    title: 'LaTeX cheat-sheet', type: 'note', parent: root.id, x: 420, y: -60,
+    body:
+      'Common LaTeX you can paste straight into any note:\n\n' +
+      'Fractions:  $\\frac{a}{b}$\n' +
+      'Roots:  $\\sqrt{x}$,  $\\sqrt[3]{x}$\n' +
+      'Powers / subscripts:  $x^{n+1}$,  $a_{ij}$\n' +
+      'Sums & products:  $\\sum_{i=1}^n a_i$,  $\\prod_{k=1}^m b_k$\n' +
+      'Integrals:  $\\int_a^b f(x)\\,dx$\n' +
+      'Limits:  $\\lim_{x \\to 0} \\frac{\\sin x}{x} = 1$\n' +
+      'Matrices:  $\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}$\n' +
+      'Complex:  $z = a + bi$,  $e^{i\\pi} + 1 = 0$'
   });
-  const lem = newNode({
-    title: 'Cancellation lemma', type: 'lemma', parent: root.id, x: 400, y: 120,
-    body: 'In a group, $ab = ac \\Rightarrow b = c$.'
+  const complexExample = newNode({
+    title: 'Complex numbers', type: 'example', parent: root.id, x: 420, y: 200,
+    body:
+      'A complex number $z = a + bi$ has modulus $|z| = \\sqrt{a^2 + b^2}$ ' +
+      'and argument $\\arg z = \\operatorname{atan2}(b, a)$.\n\n' +
+      'Euler: $e^{i\\theta} = \\cos\\theta + i\\sin\\theta$.'
   });
-  const prf = newNode({
-    title: 'Proof of cancellation', type: 'proof', parent: lem.id, x: 800, y: 120,
-    body: 'Suppose $ab = ac$. Multiply on the left by $a^{-1}$:\n' +
-          '$$a^{-1}(ab) = a^{-1}(ac)$$\n' +
-          'By associativity, $(a^{-1}a)b = (a^{-1}a)c$, so $eb = ec$, hence $b = c$. $\\blacksquare$'
+  const matrixExample = newNode({
+    title: 'Matrix example', type: 'example', parent: root.id, x: 420, y: 460,
+    body:
+      'For $A = \\begin{pmatrix} 1 & 2 \\\\ 3 & 4 \\end{pmatrix}$ we have ' +
+      '$\\det A = 1\\cdot 4 - 2\\cdot 3 = -2$.'
   });
-  lem.links.push(prf.id, def.id);
+  root.links.push(latexGuide.id, complexExample.id);
 
-  const all = [root, def, lem, prf];
+  const all = [root, latexGuide, complexExample, matrixExample];
   for (const n of all){ nodes[n.id] = n; await writeNode(n); }
 }
 
 /* =========================================================
-   7.  Selection / editing
+   10. Calculator — complex & matrix
    ========================================================= */
-function selectNode(id){
-  selectedId = id;
-  world.querySelectorAll('.node').forEach(function(el){
-    el.classList.toggle('selected', el.dataset.id === id);
-  });
-  renderPanel();
-}
-function selectAndFocus(id){
-  selectNode(id);
-  lockedId = id;
-  if (id) requestAnimationFrame(function(){ focusNode(id); });
-}
-
-function updateNodeEl(n){
-  const el = nodeEl(n.id);
-  if (!el) return;
-  const t = el.querySelector('.title');
-  if (t) t.textContent = n.title;
-  const b = el.querySelector('.node-body');
-  if (b){
-    b.innerHTML = formatBody(n.body);
-    renderMath(b);
+function parseComplex(s){
+  s = String(s).trim().replace(/\s+/g, '');
+  if (!s) throw new Error('empty');
+  const parts = [];
+  let cur = '';
+  for (let i = 0; i < s.length; i++){
+    const ch = s[i];
+    if ((ch === '+' || ch === '-') && i > 0 && !/[eE]/.test(s[i-1])){
+      parts.push(cur); cur = ch;
+    } else cur += ch;
   }
-  drawEdges();
+  parts.push(cur);
+  let real = 0, imag = 0;
+  for (let p of parts){
+    if (!p) continue;
+    let sign = 1;
+    if (p[0] === '+') { p = p.slice(1); }
+    else if (p[0] === '-'){ sign = -1; p = p.slice(1); }
+    if (p === '' || p === 'i'){
+      imag += sign * (p === 'i' ? 1 : 0);
+      if (p === '') real += sign;
+      continue;
+    }
+    if (p.endsWith('i')){
+      let c = p.slice(0, -1);
+      if (c === '' || c === '*') c = '1';
+      imag += sign * parseFloat(c);
+    } else {
+      real += sign * parseFloat(p);
+    }
+  }
+  if (isNaN(real) || isNaN(imag)) throw new Error('could not parse: ' + s);
+  return { re: real, im: imag };
 }
 
-const HINT = '<div class="hint">' +
-  '<p><b>No node selected.</b></p>' +
-  '<p>• Click a node to focus the camera on it and edit it.<br>' +
-  '• Drag a node by its header to move it.<br>' +
-  '• Drag the background to pan, scroll to zoom.<br>' +
-  '• Click ▾ on a node to collapse / expand its subtree.</p>' +
-  '<p><b>Maths:</b> <code>$x^2$</code> inline, <code>$$\\int_0^1 x\\,dx$$</code> display.</p>' +
-  '<p><b>Links:</b> write <code>[[nodeId|label]]</code> inside a note, or use the ' +
-  '"Insert link to…" dropdown. Clicking such a link jumps the camera to that node.</p>' +
-  '<p><b>Files:</b> press <b>Open notes folder</b> and pick a folder — every node ' +
-  'becomes a plain <code>node_*.txt</code> file you can read, back up or sync.</p>' +
-  '</div>';
+function fmtNum(x){
+  if (Math.abs(x) < 1e-12) x = 0;
+  if (Number.isInteger(x)) return String(x);
+  return String(parseFloat(x.toPrecision(10)));
+}
+function fmtComplex(z){
+  const re = fmtNum(z.re), im = fmtNum(Math.abs(z.im));
+  if (z.im === 0) return re;
+  if (z.re === 0) return (z.im < 0 ? '-' : '') + (im === '1' ? '' : im) + 'i';
+  return re + (z.im < 0 ? ' - ' : ' + ') + (im === '1' ? '' : im) + 'i';
+}
+function complexToLatex(z){
+  const re = fmtNum(z.re), im = fmtNum(Math.abs(z.im));
+  if (z.im === 0) return re;
+  if (z.re === 0) return (z.im < 0 ? '-' : '') + (im === '1' ? '' : im) + 'i';
+  return re + (z.im < 0 ? ' - ' : ' + ') + (im === '1' ? '' : im) + 'i';
+}
+
+function complexOp(aStr, bStr, op){
+  const a = parseComplex(aStr);
+  const b = bStr != null && bStr !== '' ? parseComplex(bStr) : null;
+  let r;
+  switch(op){
+    case 'add': r = { re: a.re + b.re, im: a.im + b.im }; break;
+    case 'sub': r = { re: a.re - b.re, im: a.im - b.im }; break;
+    case 'mul':
+      r = { re: a.re*b.re - a.im*b.im, im: a.re*b.im + a.im*b.re }; break;
+    case 'div': {
+      const d = b.re*b.re + b.im*b.im;
+      if (d === 0) throw new Error('division by zero');
+      r = { re: (a.re*b.re + a.im*b.im)/d, im: (a.im*b.re - a.re*b.im)/d }; break;
+    }
+    case 'conj': r = { re: a.re, im: -a.im }; break;
+    case 'abs': {
+      const m = Math.hypot(a.re, a.im);
+      return { latex: fmtNum(m), display: fmtNum(m), isReal: true };
+    }
+    case 'arg': {
+      const ang = Math.atan2(a.im, a.re);
+      return { latex: fmtNum(ang), display: fmtNum(ang), isReal: true };
+    }
+    default: throw new Error('unknown op');
+  }
+  return { latex: complexToLatex(r), display: fmtComplex(r) };
+}
+
+function parseMatrix(s){
+  s = String(s).trim();
+  s = s.replace(/^\[\[/, '').replace(/\]\]$/, '');
+  const rows = s.split(/;|\]\[/);
+  const m = rows.map(r =>
+    r.replace(/^\[|\]$/g, '').split(/[,\s]+/).filter(Boolean).map(x => {
+      const v = parseFloat(x);
+      if (isNaN(v)) throw new Error('bad matrix entry: ' + x);
+      return v;
+    })
+  );
+  const cols = m[0].length;
+  if (!m.every(r => r.length === cols)) throw new Error('ragged matrix');
+  return m;
+}
+function matrixToLatex(m){
+  const rows = m.map(r => r.map(fmtNum).join(' & ')).join(' \\\\ ');
+  return '\\begin{pmatrix} ' + rows + ' \\end{pmatrix}';
+}
+function matrixToDisplay(m){
+  const rows = m.map(r => r.map(fmtNum).join('  ')).join('\n');
+  return rows;
+}
+
+function matrixOp(aStr, bStr, op){
+  const A = parseMatrix(aStr);
+  const B = (bStr != null && bStr.trim() !== '') ? parseMatrix(bStr) : null;
+  const n = A.length, m = A[0].length;
+
+  if (op === 'add' || op === 'sub'){
+    if (!B) throw new Error('need two matrices');
+    if (B.length !== n || B[0].length !== m) throw new Error('size mismatch');
+    const C = A.map((row,i) => row.map((v,j) => op === 'add' ? v + B[i][j] : v - B[i][j]));
+    return { latex: matrixToLatex(C), display: matrixToDisplay(C), matrix: C };
+  }
+  if (op === 'mul'){
+    if (!B) throw new Error('need two matrices');
+    if (m !== B.length) throw new Error('dimension mismatch (' + m + ' vs ' + B.length + ')');
+    const C = [];
+    for (let i = 0; i < n; i++){
+      C.push([]);
+      for (let j = 0; j < B[0].length; j++){
+        let sum = 0;
+        for (let k = 0; k < m; k++) sum += A[i][k]*B[k][j];
+        C[i].push(sum);
+      }
+    }
+    return { latex: matrixToLatex(C), display: matrixToDisplay(C), matrix: C };
+  }
+  if (op === 'transpose'){
+    const C = A[0].map((_,j) => A.map(r => r[j]));
+    return { latex: matrixToLatex(C), display: matrixToDisplay(C), matrix: C };
+  }
+  if (op === 'det'){
+    if (n !== m) throw new Error('determinant needs a square matrix');
+    const d = det(A);
+    return { latex: fmtNum(d), display: fmtNum(d), isReal: true };
+  }
+  if (op === 'inv'){
+    if (n !== m) throw new Error('inverse needs a square matrix');
+    const d = det(A);
+    if (Math.abs(d) < 1e-14) throw new Error('matrix is singular');
+    const C = invert(A, d);
+    return { latex: matrixToLatex(C), display: matrixToDisplay(C), matrix: C };
+  }
+  throw new Error('unknown op');
+}
+
+function det(M){
+  const n = M.length;
+  if (n === 1) return M[0][0];
+  if (n === 2) return M[0][0]*M[1][1] - M[0][1]*M[1][0];
+  let sum = 0;
+  for (let j = 0; j < n; j++){
+    const sub = M.slice(1).map(r => r.filter((_,k) => k !== j));
+    sum += ((j % 2) ? -1 : 1) * M[0][j] * det(sub);
+  }
+  return sum;
+}
+function invert(M, d){
+  const n = M.length;
+  if (n === 1) return [[1/d]];
+  const C = [];
+  for (let i = 0; i < n; i++){
+    C.push([]);
+    for (let j = 0; j < n; j++){
+      const sub = M.filter((_,r) => r !== i).map(r => r.filter((_,c) => c !== j));
+      const sign = ((i + j) % 2) ? -1 : 1;
+      C[i].push(sign * det(sub) / d);
+    }
+  }
+  return C[0].map((_,j) => C.map(r => r[j]));
+}
+
+/* =========================================================
+   11. Panel — tabs: node / calculator / shortcuts / settings
+   ========================================================= */
+const LATEX_SHORTCUTS = [
+  ['\\frac{a}{b}',    'fraction'],
+  ['\\sqrt{x}',       'square root'],
+  ['\\sqrt[n]{x}',    'nth root'],
+  ['x^{n}',           'power'],
+  ['x_{i}',           'subscript'],
+  ['\\sum_{i=1}^n',   'sum'],
+  ['\\prod_{i=1}^n',  'product'],
+  ['\\int_a^b',       'integral'],
+  ['\\lim_{x\\to 0}', 'limit'],
+  ['\\frac{d}{dx}',   'derivative'],
+  ['\\partial',       'partial'],
+  ['\\infty',         'infinity'],
+  ['\\alpha',         'alpha'],
+  ['\\beta',          'beta'],
+  ['\\gamma',         'gamma'],
+  ['\\theta',         'theta'],
+  ['\\lambda',        'lambda'],
+  ['\\pi',            'pi'],
+  ['\\pm',            'plus/minus'],
+  ['\\times',         'times'],
+  ['\\cdot',          'cdot'],
+  ['\\le',            '≤'],
+  ['\\ge',            '≥'],
+  ['\\ne',            '≠'],
+  ['\\approx',        '≈'],
+  ['\\equiv',         '≡'],
+  ['\\in',            '∈'],
+  ['\\subset',        '⊂'],
+  ['\\cup',           '∪'],
+  ['\\cap',           '∩'],
+  ['\\forall',        '∀'],
+  ['\\exists',        '∃'],
+  ['\\Rightarrow',    '⇒'],
+  ['\\Leftrightarrow','⇔'],
+  ['\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}', 'pmatrix'],
+  ['\\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix}', 'bmatrix'],
+  ['\\begin{vmatrix} a & b \\\\ c & d \\end{vmatrix}', 'vmatrix'],
+  ['\\begin{cases} … \\end{cases}', 'cases'],
+  ['\\mathbb{R}',     'ℝ'],
+  ['\\mathbb{C}',     'ℂ'],
+  ['\\mathbb{N}',     'ℕ'],
+  ['\\mathbb{Z}',     'ℤ'],
+  ['\\mathbb{Q}',     'ℚ']
+];
 
 function renderPanel(){
+  if (activeTab === 'node')      renderNodeTab();
+  else if (activeTab === 'calc') renderCalcTab();
+  else if (activeTab === 'shortcuts') renderShortcutsTab();
+  else                            renderSettingsTab();
+}
+
+function tabsHTML(active){
+  const T = [
+    ['node', '📝 Node'],
+    ['calc', '🧮 Calculator'],
+    ['shortcuts', '∑ LaTeX'],
+    ['settings', '⚙ Settings']
+  ];
+  return '<div class="tabs">' + T.map(([k, label]) =>
+    '<button data-tab="' + k + '"' + (k === active ? ' class="active"' : '') + '>' + label + '</button>'
+  ).join('') + '</div>';
+}
+function bindTabs(){
+  document.querySelectorAll('.tabs button').forEach(b => {
+    b.addEventListener('click', function(){
+      activeTab = b.dataset.tab;
+      renderPanel();
+    });
+  });
+}
+
+/* ---------- node tab ---------- */
+function renderNodeTab(){
   const n = selectedId ? nodes[selectedId] : null;
+  const others = Object.keys(nodes).map(k => nodes[k]).filter(o => !n || o.id !== n.id);
 
-  if (!n){ panel.innerHTML = HINT; return; }
+  let html = tabsHTML('node');
 
-  const others = Object.keys(nodes).map(k => nodes[k]).filter(o => o.id !== n.id);
+  if (!n){
+    html +=
+      '<div class="hint">' +
+      '<p><b>No node selected.</b></p>' +
+      '<p>• Click a node to focus the camera on it and edit it.<br>' +
+      '• Drag a node by its header to move it.<br>' +
+      '• Drag the background to pan, scroll to zoom.<br>' +
+      '• Click ▾ on a node to collapse / expand its subtree.</p>' +
+      '<p><b>Maths:</b> wrap inline maths in <code>$…$</code> and display maths in ' +
+      '<code>$$…$$</code>. You can also use <code>\\(…\\)</code> and <code>\\[…\\]</code>.</p>' +
+      '<p><b>Links:</b> write <code>[[nodeId|label]]</code> inside a note, or use the ' +
+      '"Insert link to…" dropdown. Clicking a link jumps the camera to that node.</p>' +
+      '<p><b>Files:</b> Chrome/Edge can sync a folder; every browser can Export/Import ZIP.</p>' +
+      '</div>';
+    panel.innerHTML = html;
+    bindTabs();
+    return;
+  }
 
-  panel.innerHTML =
+  html +=
     '<div class="p-head"><span class="p-title">Edit node</span>' +
     '<code class="p-id">' + esc(n.id) + '</code></div>' +
 
@@ -676,17 +1214,13 @@ function renderPanel(){
 
     '<label class="lbl">Type</label>' +
     '<select id="f-type" class="inp">' +
-      TYPES.map(function(t){
-        return '<option value="' + t + '"' + (t === n.type ? ' selected' : '') + '>' + t + '</option>';
-      }).join('') +
+      TYPES.map(t => '<option value="' + t + '"' + (t === n.type ? ' selected' : '') + '>' + t + '</option>').join('') +
     '</select>' +
 
-    '<label class="lbl">Body — LaTeX, <code>$…$</code>, <code>$$…$$</code>, links <code>[[id|label]]</code></label>' +
+    '<label class="lbl">Body — LaTeX in <code>$…$</code> or <code>$$…$$</code>, links <code>[[id|label]]</code></label>' +
     '<div class="row"><select id="f-insert" class="inp small">' +
       '<option value="">Insert link to…</option>' +
-      others.map(function(o){
-        return '<option value="' + o.id + '">' + esc(o.title) + '</option>';
-      }).join('') +
+      others.map(o => '<option value="' + o.id + '">' + esc(o.title) + '</option>').join('') +
     '</select></div>' +
     '<textarea id="f-body" class="inp" spellcheck="false"></textarea>' +
 
@@ -699,10 +1233,9 @@ function renderPanel(){
     '<label class="lbl">Parent</label>' +
     '<select id="f-parent" class="inp">' +
       '<option value="">— none (root) —</option>' +
-      others.filter(function(o){ return !isDescendant(o.id, n.id); }).map(function(o){
-        return '<option value="' + o.id + '"' + (o.id === n.parent ? ' selected' : '') + '>' +
-               esc(o.title) + '</option>';
-      }).join('') +
+      others.filter(o => !isDescendant(o.id, n.id)).map(o =>
+        '<option value="' + o.id + '"' + (o.id === n.parent ? ' selected' : '') + '>' +
+        esc(o.title) + '</option>').join('') +
     '</select>' +
 
     '<div class="actions">' +
@@ -712,19 +1245,20 @@ function renderPanel(){
     '</div>' +
     '<div class="actions"><button id="btn-centre">⌖ Centre camera</button></div>';
 
+  panel.innerHTML = html;
+  bindTabs();
+
   const ta = $('#f-body');
   ta.value = n.body;
   updatePreview(n);
   renderLinksChips(n);
 
-  /* ---- events ---- */
   $('#f-title').addEventListener('input', function(e){
     n.title = e.target.value;
     const el = nodeEl(n.id);
     if (el){ const t = el.querySelector('.title'); if (t) t.textContent = n.title; }
     scheduleSave(n);
   });
-
   $('#f-type').addEventListener('change', function(e){
     n.type = e.target.value;
     render();
@@ -737,10 +1271,7 @@ function renderPanel(){
     n.body = ta.value;
     scheduleSave(n);
     clearTimeout(bodyTimer);
-    bodyTimer = setTimeout(function(){
-      updatePreview(n);
-      updateNodeEl(n);
-    }, 280);
+    bodyTimer = setTimeout(function(){ updatePreview(n); updateNodeEl(n); }, 280);
   });
 
   $('#f-insert').addEventListener('change', function(e){
@@ -758,27 +1289,16 @@ function renderPanel(){
     scheduleSave(n);
     e.target.value = '';
   });
-
   $('#f-parent').addEventListener('change', function(e){
     n.parent = e.target.value || null;
     render();
     renderPanel();
     scheduleSave(n);
   });
-
-  $('#btn-child').addEventListener('click', function(){
-    addNode({ parent: n.id });
-  });
-  $('#btn-sibling').addEventListener('click', function(){
-    addNode({ parent: n.parent });
-  });
-  $('#btn-delete').addEventListener('click', function(){
-    deleteNode(n.id);
-  });
-  $('#btn-centre').addEventListener('click', function(){
-    lockedId = n.id;
-    focusNode(n.id);
-  });
+  $('#btn-child').addEventListener('click', function(){ addNode({ parent: n.id }); });
+  $('#btn-sibling').addEventListener('click', function(){ addNode({ parent: n.parent }); });
+  $('#btn-delete').addEventListener('click', function(){ deleteNode(n.id); });
+  $('#btn-centre').addEventListener('click', function(){ lockedId = n.id; focusNode(n.id); });
 }
 
 function updatePreview(n){
@@ -787,70 +1307,252 @@ function updatePreview(n){
   p.innerHTML = formatBody(n.body || '');
   renderMath(p);
 }
-
 function renderLinksChips(n){
   const box = $('#f-links');
   if (!box) return;
   box.innerHTML = '';
-
   if (!n.links.length){
     const s = document.createElement('span');
-    s.className = 'muted';
-    s.textContent = 'none';
+    s.className = 'muted'; s.textContent = 'none';
     box.appendChild(s);
   }
-
   n.links.forEach(function(id){
     const chip = document.createElement('span');
     chip.className = 'chip';
     const label = nodes[id] ? nodes[id].title : '(missing ' + id + ')';
     chip.innerHTML = '<span>' + esc(label) + '</span><button title="remove">×</button>';
     chip.querySelector('button').addEventListener('click', function(){
-      n.links = n.links.filter(function(x){ return x !== id; });
-      renderLinksChips(n);
-      drawEdges();
-      scheduleSave(n);
+      n.links = n.links.filter(x => x !== id);
+      renderLinksChips(n); drawEdges(); scheduleSave(n);
     });
     box.appendChild(chip);
   });
-
   const sel = document.createElement('select');
   sel.className = 'inp small';
   sel.style.maxWidth = '190px';
   sel.innerHTML = '<option value="">+ add link…</option>' +
-    Object.keys(nodes).map(function(k){ return nodes[k]; })
-      .filter(function(o){ return o.id !== n.id && n.links.indexOf(o.id) === -1; })
-      .map(function(o){ return '<option value="' + o.id + '">' + esc(o.title) + '</option>'; })
-      .join('');
+    Object.keys(nodes).map(k => nodes[k])
+      .filter(o => o.id !== n.id && n.links.indexOf(o.id) === -1)
+      .map(o => '<option value="' + o.id + '">' + esc(o.title) + '</option>').join('');
   sel.addEventListener('change', function(){
     if (!sel.value) return;
     n.links.push(sel.value);
-    renderLinksChips(n);
-    drawEdges();
-    scheduleSave(n);
+    renderLinksChips(n); drawEdges(); scheduleSave(n);
   });
   box.appendChild(sel);
 }
 
+/* ---------- calculator tab ---------- */
+function renderCalcTab(){
+  let html = tabsHTML('calc');
+  html +=
+    '<div class="p-head"><span class="p-title">Calculator</span></div>' +
+
+    '<label class="lbl">Complex numbers</label>' +
+    '<div class="calc-row">' +
+      '<input id="c-a" class="inp" placeholder="e.g. 3+4i" value="3+4i" style="flex:1">' +
+      '<input id="c-b" class="inp" placeholder="e.g. 1-2i" value="1-2i" style="flex:1">' +
+    '</div>' +
+    '<div class="actions" style="margin-top:0">' +
+      '<button data-cop="add">+</button>' +
+      '<button data-cop="sub">−</button>' +
+      '<button data-cop="mul">×</button>' +
+      '<button data-cop="div">÷</button>' +
+      '<button data-cop="conj">conj</button>' +
+      '<button data-cop="abs">|z|</button>' +
+      '<button data-cop="arg">arg</button>' +
+    '</div>' +
+    '<label class="lbl">Result</label>' +
+    '<div id="c-out" class="calc-out"><span class="muted">pick an operation</span></div>' +
+    '<div id="c-latex" class="latex-box" style="display:none"></div>' +
+    '<div class="actions" style="margin-top:8px">' +
+      '<button id="c-copy" class="small">📋 Copy LaTeX</button>' +
+    '</div>' +
+
+    '<label class="lbl" style="margin-top:22px">Matrices</label>' +
+    '<input id="m-a" class="inp" placeholder="A: 1 2; 3 4" value="1 2; 3 4">' +
+    '<input id="m-b" class="inp" placeholder="B (optional): 5 6; 7 8" value="5 6; 7 8" style="margin-top:6px">' +
+    '<div class="actions" style="margin-top:0">' +
+      '<button data-mop="add">A+B</button>' +
+      '<button data-mop="sub">A−B</button>' +
+      '<button data-mop="mul">A·B</button>' +
+      '<button data-mop="transpose">Aᵀ</button>' +
+      '<button data-mop="det">det A</button>' +
+      '<button data-mop="inv">A⁻¹</button>' +
+    '</div>' +
+    '<label class="lbl">Result</label>' +
+    '<div id="m-out" class="calc-out"><span class="muted">pick an operation</span></div>' +
+    '<div id="m-latex" class="latex-box" style="display:none"></div>' +
+    '<div class="actions" style="margin-top:8px">' +
+      '<button id="m-copy" class="small">📋 Copy LaTeX</button>' +
+    '</div>' +
+
+    '<div class="hint" style="margin-top:20px">' +
+    '<p><b>Matrix format:</b> rows separated by <code>;</code>, entries by spaces or commas. ' +
+    'LaTeX-style <code>[[1,2],[3,4]]</code> also works.</p>' +
+    '<p><b>Complex format:</b> <code>a+bi</code>, <code>bi</code>, <code>a</code>, <code>i</code>, ' +
+    '<code>-2.5+0.5i</code>, etc.</p>' +
+    '</div>';
+
+  panel.innerHTML = html;
+  bindTabs();
+
+  let cLatex = '', mLatex = '';
+
+  document.querySelectorAll('[data-cop]').forEach(b => b.addEventListener('click', function(){
+    try{
+      const a = $('#c-a').value, b2 = $('#c-b').value;
+      const r = complexOp(a, b2, b.dataset.cop);
+      $('#c-out').textContent = r.display;
+      cLatex = '$$ ' + (r.isReal ? r.latex : 'z = ' + r.latex) + ' $$';
+      const lb = $('#c-latex');
+      lb.style.display = 'block';
+      lb.textContent = cLatex;
+    }catch(e){
+      $('#c-out').textContent = '⚠ ' + e.message;
+      $('#c-latex').style.display = 'none';
+      cLatex = '';
+    }
+  }));
+  $('#c-copy').addEventListener('click', function(){
+    if (!cLatex){ toast('nothing to copy'); return; }
+    copyText(cLatex, 'complex result LaTeX copied');
+  });
+
+  document.querySelectorAll('[data-mop]').forEach(b => b.addEventListener('click', function(){
+    try{
+      const a = $('#m-a').value, b2 = $('#m-b').value;
+      const r = matrixOp(a, b2, b.dataset.mop);
+      $('#m-out').textContent = r.display;
+      mLatex = '$$ ' + r.latex + ' $$';
+      const lb = $('#m-latex');
+      lb.style.display = 'block';
+      lb.textContent = mLatex;
+    }catch(e){
+      $('#m-out').textContent = '⚠ ' + e.message;
+      $('#m-latex').style.display = 'none';
+      mLatex = '';
+    }
+  }));
+  $('#m-copy').addEventListener('click', function(){
+    if (!mLatex){ toast('nothing to copy'); return; }
+    copyText(mLatex, 'matrix result LaTeX copied');
+  });
+}
+
+function copyText(text, ok){
+  const done = () => toast(ok || 'copied to clipboard');
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done, function(){
+      fallbackCopy(text); done();
+    });
+  } else {
+    fallbackCopy(text); done();
+  }
+}
+function fallbackCopy(text){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try{ document.execCommand('copy'); }catch(e){}
+  ta.remove();
+}
+
+/* ---------- shortcuts tab ---------- */
+function renderShortcutsTab(){
+  let html = tabsHTML('shortcuts');
+  html +=
+    '<div class="p-head"><span class="p-title">LaTeX shortcuts</span></div>' +
+    '<div class="hint" style="margin-bottom:10px">Click to copy — or with a node selected, ' +
+    'this tab replaces the node editor. Use the <b>📝 Node</b> tab to keep editing.</div>' +
+    '<div class="shortcut-grid">' +
+    LATEX_SHORTCUTS.map(([s, label], i) =>
+      '<button data-ltx="' + i + '" title="' + esc(label) + '">' + esc(s) + '</button>'
+    ).join('') +
+    '</div>';
+  panel.innerHTML = html;
+  bindTabs();
+  document.querySelectorAll('[data-ltx]').forEach(b => {
+    b.addEventListener('click', function(){
+      const idx = parseInt(b.dataset.ltx, 10);
+      const s = LATEX_SHORTCUTS[idx][0];
+      copyText(s, 'copied: ' + s);
+    });
+  });
+}
+
+/* ---------- settings tab ---------- */
+function renderSettingsTab(){
+  const n = Object.keys(nodes).length;
+  let html = tabsHTML('settings');
+  html +=
+    '<div class="p-head"><span class="p-title">Settings & info</span></div>' +
+
+    '<label class="lbl">Theme</label>' +
+    '<select id="s-theme" class="inp">' +
+      ['dark','light','pink'].map(t => '<option value="' + t + '"' +
+        (document.body.getAttribute('data-theme') === t ? ' selected' : '') + '>' + t + '</option>').join('') +
+    '</select>' +
+
+    '<label class="lbl">Storage</label>' +
+    '<div class="hint">' +
+      (dirHandle ? '<p>📂 <b>Folder sync active.</b> Notes are auto-saved as <code>node_*.txt</code> files.</p>'
+                : '<p>💾 <b>Browser storage.</b> Notes live in <code>localStorage</code>. ' +
+                  'Use Export ZIP for a portable backup.</p>') +
+      '<p>' + n + ' node' + (n === 1 ? '' : 's') + ' in this graph.</p>' +
+    '</div>' +
+    '<div class="actions">' +
+      '<button id="s-save">Save all now</button>' +
+      '<button id="s-wipe" class="danger">Clear graph…</button>' +
+    '</div>' +
+
+    '<label class="lbl">About</label>' +
+    '<div class="hint">' +
+    '<p><b>Node-Taker</b> — a node graph for maths notes with LaTeX, a complex/matrix ' +
+    'calculator, and portable file storage.</p>' +
+    '<p>Keyboard: <code>F</code> fit · <code>A</code> arrange · <code>N</code> new node · ' +
+    '<code>Ctrl/⌘+S</code> save</p>' +
+    '</div>';
+
+  panel.innerHTML = html;
+  bindTabs();
+
+  $('#s-theme').addEventListener('change', function(e){
+    setTheme(e.target.value);
+    const top = $('#sel-theme'); if (top) top.value = e.target.value;
+  });
+  $('#s-save').addEventListener('click', function(){
+    Object.keys(nodes).forEach(k => writeNode(nodes[k]));
+    saveLocal();
+    flash('saved all ✓');
+  });
+  $('#s-wipe').addEventListener('click', function(){
+    if (!confirm('Clear ALL notes in this graph?')) return;
+    for (const k in nodes) delete nodes[k];
+    selectedId = null; lockedId = null;
+    saveLocal();
+    render();
+    renderPanel();
+    flash('graph cleared');
+  });
+}
+
 /* =========================================================
-   8.  Node operations
+   12. Node operations
    ========================================================= */
 function addNode(opts){
   opts = opts || {};
   const n = newNode(opts);
   nodes[n.id] = n;
-
   if (n.parent && nodes[n.parent]){
     const p = nodes[n.parent];
     p.collapsed = false;
     n.x = p.x + 400;
     n.y = p.y + 150;
     scheduleSave(p);
-  } else {
-    n.x = 0;
-    n.y = 0;
   }
-
   writeNodeNow(n);
   render();
   selectAndFocus(n.id);
@@ -860,22 +1562,16 @@ function deleteNode(id){
   const n = nodes[id];
   if (!n) return;
   if (!confirm('Delete "' + n.title + '"?\n\nIts children will move up to its parent.')) return;
-
-  childrenOf(id).forEach(function(c){
-    c.parent = n.parent;
-    scheduleSave(c);
-  });
+  childrenOf(id).forEach(function(c){ c.parent = n.parent; scheduleSave(c); });
   Object.keys(nodes).forEach(function(k){
     const o = nodes[k];
     if (o.links.indexOf(id) !== -1){
-      o.links = o.links.filter(function(x){ return x !== id; });
+      o.links = o.links.filter(x => x !== id);
       scheduleSave(o);
     }
   });
-
   delete nodes[id];
-  if (dirHandle){ dirHandle.removeEntry(fileName(id)).catch(function(){}); }
-
+  if (dirHandle){ dirHandle.removeEntry(fileName(id)).catch(()=>{}); }
   if (selectedId === id) selectedId = null;
   if (lockedId === id)   lockedId = null;
   render();
@@ -888,17 +1584,38 @@ function toggleCollapse(id){
   n.collapsed = !n.collapsed;
   scheduleSave(n);
   render();
-  if (lockedId) requestAnimationFrame(function(){ focusNode(lockedId); });
+  if (lockedId) requestAnimationFrame(() => focusNode(lockedId));
+}
+
+function selectNode(id){
+  selectedId = id;
+  world.querySelectorAll('.node').forEach(function(el){
+    el.classList.toggle('selected', el.dataset.id === id);
+  });
+  renderPanel();
+}
+function selectAndFocus(id){
+  selectNode(id);
+  lockedId = id;
+  if (id) requestAnimationFrame(() => focusNode(id));
+}
+function updateNodeEl(n){
+  const el = nodeEl(n.id);
+  if (!el) return;
+  const t = el.querySelector('.title');
+  if (t) t.textContent = n.title;
+  const b = el.querySelector('.node-body');
+  if (b){ b.innerHTML = formatBody(n.body); renderMath(b); }
+  drawEdges();
 }
 
 /* =========================================================
-   9.  Mouse / touch interaction
+   13. Interaction
    ========================================================= */
 let drag = null;
 
 viewport.addEventListener('mousedown', function(e){
   if (e.button !== 0) return;
-
   const toggle = e.target.closest('.toggle');
   const linkEl = e.target.closest('.nodelink');
   const nodeDiv = e.target.closest('.node');
@@ -915,20 +1632,12 @@ viewport.addEventListener('mousedown', function(e){
   }
   if (nodeDiv){
     const id = nodeDiv.dataset.id;
-    drag = {
-      type: 'node', id: id,
-      startX: e.clientX, startY: e.clientY,
-      origX: nodes[id].x, origY: nodes[id].y,
-      moved: false
-    };
+    drag = { type:'node', id, startX:e.clientX, startY:e.clientY,
+             origX:nodes[id].x, origY:nodes[id].y, moved:false };
     e.preventDefault();
   } else {
-    drag = {
-      type: 'pan',
-      startX: e.clientX, startY: e.clientY,
-      origX: cam.x, origY: cam.y,
-      moved: false
-    };
+    drag = { type:'pan', startX:e.clientX, startY:e.clientY,
+             origX:cam.x, origY:cam.y, moved:false };
     viewport.classList.add('panning');
   }
 });
@@ -938,7 +1647,6 @@ window.addEventListener('mousemove', function(e){
   const dx = e.clientX - drag.startX;
   const dy = e.clientY - drag.startY;
   if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
-
   if (drag.type === 'pan'){
     cam.x = drag.origX + dx;
     cam.y = drag.origY + dy;
@@ -949,10 +1657,7 @@ window.addEventListener('mousemove', function(e){
     n.x = drag.origX + dx / cam.z;
     n.y = drag.origY + dy / cam.z;
     const el = nodeEl(drag.id);
-    if (el){
-      el.style.left = n.x + 'px';
-      el.style.top  = n.y + 'px';
-    }
+    if (el){ el.style.left = n.x + 'px'; el.style.top = n.y + 'px'; }
     drawEdges();
   }
 });
@@ -962,20 +1667,15 @@ window.addEventListener('mouseup', function(){
   const d = drag;
   drag = null;
   viewport.classList.remove('panning');
-
   if (d.type === 'node'){
-    if (!d.moved){
-      selectAndFocus(d.id);
-    } else if (nodes[d.id]){
-      scheduleSave(nodes[d.id]);
-    }
+    if (!d.moved) selectAndFocus(d.id);
+    else if (nodes[d.id]) scheduleSave(nodes[d.id]);
   } else if (!d.moved){
     selectNode(null);
     lockedId = null;
   }
 });
 
-/* ---- wheel zoom ---- */
 viewport.addEventListener('wheel', function(e){
   e.preventDefault();
   const r = viewport.getBoundingClientRect();
@@ -983,106 +1683,105 @@ viewport.addEventListener('wheel', function(e){
   zoomAt(e.clientX - r.left, e.clientY - r.top, factor);
 }, { passive: false });
 
-/* ---- zoom HUD ---- */
-$('#zoomhud').addEventListener('mousedown', function(e){ e.stopPropagation(); });
-$('#z-in').addEventListener('click', function(){
-  zoomAt(viewport.clientWidth / 2, viewport.clientHeight / 2, 1.22);
-});
-$('#z-out').addEventListener('click', function(){
-  zoomAt(viewport.clientWidth / 2, viewport.clientHeight / 2, 1 / 1.22);
-});
+$('#zoomhud').addEventListener('mousedown', e => e.stopPropagation());
+$('#z-in').addEventListener('click', () => zoomAt(viewport.clientWidth/2, viewport.clientHeight/2, 1.22));
+$('#z-out').addEventListener('click', () => zoomAt(viewport.clientWidth/2, viewport.clientHeight/2, 1/1.22));
 $('#z-fit').addEventListener('click', fitView);
 
 /* =========================================================
-   10. Toolbar
+   14. Toolbar
    ========================================================= */
 $('#btn-open').addEventListener('click', openFolder);
-
+$('#btn-export').addEventListener('click', exportZip);
+$('#btn-import').addEventListener('click', function(){
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = '.zip,application/zip';
+  inp.addEventListener('change', function(){
+    if (inp.files && inp.files[0]) importZip(inp.files[0]);
+  });
+  inp.click();
+});
 $('#btn-new').addEventListener('click', function(){
   const parent = selectedId && nodes[selectedId] ? selectedId : null;
-  addNode({ parent: parent, title: 'New node', type: 'note' });
+  addNode({ parent, title: 'New node', type: 'note' });
 });
-
 $('#btn-arrange').addEventListener('click', autoArrange);
-
 $('#btn-collapse-all').addEventListener('click', function(){
   Object.keys(nodes).forEach(function(k){
     if (childrenOf(k).length) nodes[k].collapsed = true;
     scheduleSave(nodes[k]);
   });
   render();
-  if (lockedId) requestAnimationFrame(function(){ focusNode(lockedId); });
+  if (lockedId) requestAnimationFrame(() => focusNode(lockedId));
 });
-
 $('#btn-expand-all').addEventListener('click', function(){
-  Object.keys(nodes).forEach(function(k){
-    nodes[k].collapsed = false;
-    scheduleSave(nodes[k]);
-  });
+  Object.keys(nodes).forEach(function(k){ nodes[k].collapsed = false; scheduleSave(nodes[k]); });
   render();
-  if (lockedId) requestAnimationFrame(function(){ focusNode(lockedId); });
+  if (lockedId) requestAnimationFrame(() => focusNode(lockedId));
 });
-
 $('#chk-bodies').addEventListener('change', function(e){
   showBodies = e.target.checked;
-  localStorage.setItem('mathsnotes.showBodies', showBodies ? '1' : '0');
+  try{ localStorage.setItem('nodetaker.showBodies', showBodies ? '1' : '0'); }catch(err){}
   render();
-  if (lockedId) requestAnimationFrame(function(){ focusNode(lockedId); });
+  if (lockedId) requestAnimationFrame(() => focusNode(lockedId));
 });
+$('#sel-theme').addEventListener('change', function(e){ setTheme(e.target.value); });
 
-/* ---- keyboard ---- */
+/* =========================================================
+   15. Keyboard
+   ========================================================= */
 window.addEventListener('keydown', function(e){
   const inField = /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
-
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's'){
     e.preventDefault();
-    Object.keys(nodes).forEach(function(k){ writeNode(nodes[k]); });
+    Object.keys(nodes).forEach(k => writeNode(nodes[k]));
+    saveLocal();
     flash('saved all ✓');
     return;
   }
   if (inField) return;
-
-  if (e.key === 'f' || e.key === 'F'){ fitView(); }
-  if (e.key === 'a' || e.key === 'A'){ autoArrange(); }
+  if (e.key === 'f' || e.key === 'F') fitView();
+  if (e.key === 'a' || e.key === 'A') autoArrange();
   if (e.key === 'n' || e.key === 'N'){
     const parent = selectedId && nodes[selectedId] ? selectedId : null;
-    addNode({ parent: parent, title: 'New node', type: 'note' });
+    addNode({ parent, title: 'New node', type: 'note' });
   }
 });
 
 /* =========================================================
-   11. Boot
+   16. Boot
    ========================================================= */
 function boot(){
+  loadTheme();
   try{
-    const sb = localStorage.getItem('mathsnotes.showBodies');
+    const sb = localStorage.getItem('nodetaker.showBodies');
     if (sb === '0'){ showBodies = false; $('#chk-bodies').checked = false; }
   }catch(e){}
 
   if (!window.showDirectoryPicker){
-    flash('Browser cannot open folders — using local storage (Chrome/Edge recommended)');
+    flash('Firefox / Safari — use Export ZIP & Import ZIP to save to disk');
   }
 
   loadLocal();
   if (!Object.keys(nodes).length){
-    // brand new user, nothing in local storage: give a starter graph
-    const root = newNode({
-      title: 'My Maths Degree', type: 'note', x: 0, y: 0,
-      body: 'Welcome!\n\nPress **Open notes folder** to choose where your notes live.\n' +
-            'Every node is stored as a plain .txt file.\n\n' +
-            'Maths: $e^{i\\pi} + 1 = 0$, and display:\n$$\\int_0^\\infty e^{-x^2}\\,dx = \\frac{\\sqrt{\\pi}}{2}$$'
-    });
-    nodes[root.id] = root;
-    saveLocal();
+    (async function(){
+      await seedStarterGraph();
+      render();
+      renderPanel();
+      requestAnimationFrame(fitView);
+    })();
+  } else {
+    render();
+    renderPanel();
+    requestAnimationFrame(fitView);
   }
 
-  render();
-  renderPanel();
-  requestAnimationFrame(function(){ fitView(); });
-
-  // re-render maths once KaTeX has finished loading
   window.addEventListener('load', function(){
-    setTimeout(function(){ render(); if (lockedId) focusNode(lockedId); }, 60);
+    setTimeout(function(){
+      render();
+      if (lockedId) focusNode(lockedId);
+    }, 80);
   });
 }
 
